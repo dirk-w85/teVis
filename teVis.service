@@ -1,0 +1,14 @@
+[Unit]
+Description=teVis
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/usr/local/bin/teVis/
+ExecStart=/usr/local/bin/teVis/teVis-web
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=tevis.service

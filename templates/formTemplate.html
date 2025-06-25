@@ -1,0 +1,107 @@
+{{ template "header.html" }}
+<body>
+	<div class="container py-4 px-3 mx-auto">
+    <div class="form-container">
+        <h2>ThousandEyes PoV Visualizer</h2>
+        <form action="/submit" method="POST" id="teForm">
+		    <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="userInput" name="userInput" placeholder="name@example.com" required>
+            <label for="floatingInput">Bearer Token</label>
+        	</div>
+            <button type="button" id="getAG" class="btn btn-primary me-3">Get Account-Groups</button>
+            <br>
+            <div id="dropdown" class="d-flex justify-content-center d-none">
+                <p>Account Group: 
+                <select id="ag" name="ag"></select>
+                </p>
+            </div>
+            <hr>
+            <div id="graphSettings" class="d-none">
+            <p>Graph Direction:</p>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="LR" name="radioDirection" id="radioDirection1" checked>
+              <label class="form-check-label" for="radioDefault1">Left-to-Right</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="TD" name="radioDirection" id="radioDirection2">
+              <label class="form-check-label" for="radioDefault2">Top-Down</label>
+            </div>
+            <br>
+            <p>Brand Colors:</p>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="thousandeyes" name="radioBrandColors" id="radioBrandColors1" checked>
+              <label class="form-check-label" for="radioDefault1">ThousandEyes</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="cisco2025" name="radioBrandColors" id="radioBrandColors2">
+              <label class="form-check-label" for="radioDefault2">Cisco FY25/26</label>
+            </div>
+            <br>
+            <p>Look:</p>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="classic" name="radioDefault" id="radioDefault1" checked>
+              <label class="form-check-label" for="radioDefault1">classic</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" value="handDrawn" name="radioDefault" id="radioDefault2">
+              <label class="form-check-label" for="radioDefault2">handDrawn</label>
+            </div>
+            <br>
+            
+            <button type="submit" id="submitBtn" class="btn btn-primary me-3" disabled>Create Diagrams</button>
+            <div class="d-flex justify-content-center d-none" id="loading-spinner">
+              <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+
+        <br><br>
+        <div class="alert alert-info" role="alert">
+            It can take a few seconds (10-25s) for the result page to load when you click the <b>Submit</b>-Button. Just be patient!
+        </div>
+            </div>
+        </form>
+
+    </div>
+	</div>
+    <script>
+$(document).ready(function() {
+    // Your jQuery code here
+    console.log("jQuery is loaded and ready!");
+
+    $('#teForm').on('submit', function(e) {
+      const $submitBtn = $('#submitBtn');
+      const $spinner = $('#loading-spinner');
+      const $buttonText = $('#buttonText');
+
+      // Show spinner and update button state
+      $spinner.removeClass('d-none');
+      //$buttonText.text('Loading...');
+      //$submitBtn.prop('disabled', true);
+    });    
+
+    $('#getAG').click(function(){
+        var token = $("#userInput").val()
+        $.getJSON("/api/accountgroups/"+token, function(data, status){
+          //alert("Data: " + data.accountGroups[0].aid+ "\nStatus: " + status);   
+          if(data.error){
+            alert(data.error+" : "+data.error_description)
+          }else{
+            $.each(data.accountGroups, function(key, value) {
+              //alert(key+":"+value.aid)
+              $("#ag").append('<option value="'+value.aid+'" class="dropdown-item">'+value.accountGroupName+'</option>');
+              //console.log(key.aid + ": " + value);
+            });       
+
+            $("#dropdown").removeClass('d-none');
+            $("#graphSettings").removeClass('d-none');
+            //$("#submitBtn").removeClass('disabled');
+            $("#submitBtn").prop("disabled", false);
+        }
+        });        
+    });    
+});
+
+    </script>
+</body>
+{{ template "footer.html" }}
