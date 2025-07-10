@@ -370,6 +370,10 @@ func main() {
     slog.Debug("main", "Server starting on", teVisSettings.ServerPort)
     slog.Debug("main", "Press Ctrl+C to stop the server", "")
 
+	router.StaticFile("/favicon.ico", "./templates/favicon.ico")
+	router.StaticFile("/js/app.js", "./src/js/app.js")
+	router.StaticFile("/testpage", "./templates/test_page.html")
+
 	// GIN - Templates
 	router.LoadHTMLGlob("templates/*")
 

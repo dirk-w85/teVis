@@ -1,5 +1,5 @@
 [Unit]
-Description=teVis
+Description=teVis - ThousandEyes PoV Visualizer
 After=network.target
 
 [Service]
