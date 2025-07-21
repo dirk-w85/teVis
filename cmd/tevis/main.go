@@ -12,8 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var curVersion string
+var curBuild string
+
 type TEVisSettings struct {
 	Version		string
+	Build		string
 	Token		string
 	AID			string
 	Loglevel	string
@@ -357,13 +361,15 @@ func main() {
 	teVisSettings.GraphDirection = "LR"
 	teVisSettings.GraphBrand = "thousandeyes"
 
-	teVisSettings.Version = "0.2025.06.24.01"
+	teVisSettings.Version = curVersion
+	teVisSettings.Build = curBuild
 	teVisSettings.ServerPort = "8090"
 
-	logger := slog.New(slog.NewJSONHandler(os.Stderr,nil))
-	//logger = slog.New(slog.NewJSONHandler(os.Stderr,&slog.HandlerOptions{Level: slog.LevelDebug}))
+	//logger := slog.New(slog.NewJSONHandler(os.Stderr,nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stderr,&slog.HandlerOptions{Level: slog.LevelDebug}))
 	slog.SetDefault(logger)
-	slog.Debug("main", "Application started - Verion", teVisSettings.Version)
+	slog.Debug("main", "Application started - Version", teVisSettings.Version)
+	slog.Debug("main", "Current Build", teVisSettings.Build)
 
 	router := gin.Default()
   
