@@ -10,7 +10,7 @@ RUN mkdir -p /tevis/templates
 # Create Working Directory
 WORKDIR /tevis
 
-COPY teVis-web_linux_amd64 tevis-web
+COPY teVis .
 COPY templates/*.html templates/
 # Add Remote Files
 #ADD http://te-git-01/hackathon2025/teaddon/-/raw/dev/src/radius-proxy/radius-proxy.py /hackathon/radius-proxy.py
@@ -21,7 +21,7 @@ EXPOSE 8090
 #HEALTHCHECK --timeout=3s CMD curl -f http://localhost:5000/status/ || exit 1
 
 # Process to run
-ENTRYPOINT ["/tevis/tevis-web"]
+ENTRYPOINT ["/tevis/teVis"]
 
 # Default arguments for that process
 #CMD ["/hackathon/radius-proxy.py"]
