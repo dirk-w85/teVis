@@ -361,7 +361,7 @@ func main() {
 	teVisSettings.GraphDirection = "LR"
 	teVisSettings.GraphBrand = "thousandeyes"
 
-	teVisSettings.Version = curVersion
+	teVisSettings.Version = "0.1."+curVersion
 	teVisSettings.Build = curBuild
 	teVisSettings.ServerPort = "8090"
 
