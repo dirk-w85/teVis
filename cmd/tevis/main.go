@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const baseVersion = "v0.2.1."
 var curVersion string
 var curBuild string
 
@@ -361,7 +362,7 @@ func main() {
 	teVisSettings.GraphDirection = "LR"
 	teVisSettings.GraphBrand = "thousandeyes"
 
-	teVisSettings.Version = "0.1."+curVersion
+	teVisSettings.Version = baseVersion+curVersion
 	teVisSettings.Build = curBuild
 	teVisSettings.ServerPort = "8090"
 
