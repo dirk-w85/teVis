@@ -1,4 +1,4 @@
-FROM alpine:3.21.0
+FROM alpine:3.22.0
 #LABEL com.example.project=api
 
 # Install Base Package

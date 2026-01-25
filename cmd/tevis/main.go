@@ -421,7 +421,7 @@ func main() {
         })
     })
 
-	router.GET("/ping", func(c *gin.Context) {
+	router.GET("/api/ping", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{
             "message": "pong",
         })
