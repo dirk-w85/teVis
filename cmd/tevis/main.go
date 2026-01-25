@@ -244,16 +244,9 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 	    lines = append(lines, "---")
 	    lines = append(lines, "graph "+teVisSettings.GraphDirection)
 
-		if(teVisSettings.GraphBrand == "thousandeyes"){
-			lines = append(lines, "classDef teAgent fill:#FB7C32,color:#fff,stroke:#FB7C32")
-        	lines = append(lines, "classDef teTest fill:#0d274d,color:#fff,stroke:#0d274d")
-        	lines = append(lines, "classDef teTarget fill:#dddddd,color:#0d274d,stroke:#0d274d")
-		}
-		if(teVisSettings.GraphBrand == "cisco2025"){
-			lines = append(lines, "classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000")
-        	lines = append(lines, "classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF")
-        	lines = append(lines, "classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF")
-		}
+		lines = append(lines, "classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000")
+        lines = append(lines, "classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF")
+        lines = append(lines, "classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF")
 
 		for _, assignedTest := range label.Assignments {
             for _, test := range teAllTests.Tests{
@@ -436,6 +429,6 @@ func main() {
 
 	router.GET("/api/accountgroups/:token", apiAccountGroupHandler)
 
-	// Start server on port 8080
+	// Start server
     router.Run(":"+teVisSettings.ServerPort)
 }

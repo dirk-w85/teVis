@@ -1,18 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>TESTPAGE - ThousandEyes PoV Visualizer</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
-
-</head>
-
+{{ template "header.html" }}
 <body>
 <div id="app">
     <div class="container py-4 px-3 mx-auto">
     <div class="form-container">
-        <h2>ThousandEyes PoV Visualizer</h2>
+        <h2>TEST - ThousandEyes PoV Visualizer</h2>
         <form action="/submit" method="POST" id="teForm">
 		    <div class="form-floating mb-3">
             <input type="text" class="form-control" id="userInput" v-model="query" name="userInput" placeholder="name@example.com" required>
@@ -35,16 +26,6 @@
             <div class="form-check">
               <input class="form-check-input" type="radio" value="TD" name="radioDirection" id="radioDirection2">
               <label class="form-check-label" for="radioDefault2">Top-Down</label>
-            </div>
-            <br>
-            <p>Brand Colors:</p>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" value="thousandeyes" name="radioBrandColors" id="radioBrandColors1" checked>
-              <label class="form-check-label" for="radioDefault1">ThousandEyes</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" value="cisco2025" name="radioBrandColors" id="radioBrandColors2">
-              <label class="form-check-label" for="radioDefault2">Cisco FY25/26</label>
             </div>
             <br>
             <p>Look:</p>
@@ -76,29 +57,4 @@
 	</div>
 </div>
 </body>
-
-
-
-<footer class="bg-dark text-light py-4 mt-5">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-6">
-        <h5>ThousandEyes PoV Visualizer</h5>
-        <p>by Dirk Woellhaf (dwoellha@cisco.com)</p>
-      </div>
-      <div class="col-md-3">
-      </div>
-      <div class="col-md-3">
-      </div>
-    </div>
-    <hr class="my-4">
-    <div class="row">
-      <div class="col-12 text-center">
-        <p class="mb-0">&copy; 2025 Cisco ThousandEyes. All rights reserved.</p>
-        
-      </div>
-    </div>
-  </div>
-  <script src="/js/app.js"></script>
-</footer>
-</html>
+{{ template "footer.html" }}
