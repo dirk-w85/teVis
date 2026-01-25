@@ -26,6 +26,7 @@ type TEVisSettings struct {
 	GraphBrand	string
 	GraphDirection	string
 	ServerPort	string
+	DarkMode	bool
 }
 
 type TETestDetail struct {
@@ -354,6 +355,7 @@ func main() {
 	teVisSettings.GraphLook = "classic"
 	teVisSettings.GraphDirection = "LR"
 	teVisSettings.GraphBrand = "thousandeyes"
+	teVisSettings.DarkMode = false
 
 	teVisSettings.Version = baseVersion+curVersion
 	teVisSettings.Build = curBuild
@@ -371,7 +373,10 @@ func main() {
     slog.Debug("main", "Press Ctrl+C to stop the server", "")
 
 	router.StaticFile("/favicon.ico", "./templates/favicon.ico")
+	router.StaticFile("/js/main_jq.js", "./src/js/main_jq.js")
 	router.StaticFile("/js/app.js", "./src/js/app.js")
+	router.StaticFile("/js/test_app.jsx", "./src/js/test_app.jsx")
+	router.StaticFile("/css/tevis.css", "./src/css/tevis.css")
 	router.StaticFile("/testpage", "./templates/test_page.html")
 
 	// GIN - Templates
@@ -407,7 +412,14 @@ func main() {
         })
     })
 
-	router.GET("/test", func(c *gin.Context) {	
+	router.GET("/test", func(c *gin.Context) {
+        c.HTML(http.StatusOK, "test_formTemplate.html", gin.H{
+            "title":   "Gin HTML Templates",
+            "message": "Welcome to Gin templating!",
+        })
+    })
+
+	router.GET("/test/submit", func(c *gin.Context) {	
 		slog.Debug("testHandler", "Current teVis Settings:", teVisSettings)
 
 		teLabels := getLabels(teVisSettings)

@@ -1,14 +1,15 @@
+console.log("Starting load Vue.Js")
+
 const app = Vue.createApp({
     data() {
         return {
-            message: "ThousandEyes teVis"
+            message: "TEST ThousandEyes teVis",
         };
     },
   methods: {
     greet() {
       alert(`Test`)
     },
-    
     getAccountGroups() {
       console.log(`Get ThousandEyes Account-Groups`)
       if(this.query != ""){
