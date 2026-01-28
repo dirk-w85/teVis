@@ -38,9 +38,7 @@ type TETestDetail struct {
 	LiveShare       bool      `json:"liveShare"`
 	TestName        string    `json:"testName"`
 	CreatedBy       string    `json:"createdBy"`
-//	CreatedDate     time.Time `json:"createdDate"`
 	ModifiedBy      string    `json:"modifiedBy"`
-//	ModifiedDate    time.Time `json:"modifiedDate"`
 	SavedEvent      bool      `json:"savedEvent"`
 	Type            string    `json:"type"`
 	AlertsEnabled   bool      `json:"alertsEnabled"`
@@ -83,6 +81,7 @@ type ALLDiagrams struct {
     Tags []struct {
         LabelID     string
         Diagram     string
+        DarkMode    bool
     }
 }
 
@@ -103,9 +102,7 @@ type TEAllTests struct {
 		LiveShare             bool      `json:"liveShare"`
 		TestName              string    `json:"testName"`
 		CreatedBy             string    `json:"createdBy"`
-//		CreatedDate           time.Time `json:"createdDate"`
 		ModifiedBy            string    `json:"modifiedBy"`
-//		ModifiedDate          time.Time `json:"modifiedDate"`
 		SavedEvent            bool      `json:"savedEvent"`
 		Type                  string    `json:"type"`
 		AlertsEnabled         bool      `json:"alertsEnabled"`
@@ -244,13 +241,21 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 	slog.Debug("createDiagrams", "Creating Diagrams...")
 	for _, label := range teLabels.Tags {
         lines := []string{}
-		//lines = append(lines, "%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#049FD9', 'primaryTextColor': '#171D26', 'lineColor': '#64748B', 'fontSize': '13px'}}}%%")
+		//lines = append(lines, "%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f3f4f5', 'primaryTextColor': '#171D26', 'lineColor': '#64748B', 'fontSize': '13px'}}}%%")
 	    lines = append(lines, "---")
 		lines = append(lines, "theme: base")
 	    lines = append(lines, "config:")
 	    lines = append(lines, "  look: "+teVisSettings.GraphLook)	
+//  		lines = append(lines, "  flowchart:")
+//    	lines = append(lines, "    curve: linear")
 	    lines = append(lines, "---")
 	    lines = append(lines, "graph "+teVisSettings.GraphDirection)
+
+		if(teVisSettings.DarkMode){
+			lines = append(lines, "linkStyle default stroke:#ffffff")
+		}
+		
+		//lines = append(lines, "linkStyle default stroke-width:2")
 
 		lines = append(lines, "classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000")
         lines = append(lines, "classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF")
@@ -319,9 +324,11 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
         allDiagrams.Tags = append(allDiagrams.Tags, struct {
             LabelID string
             Diagram string
+			DarkMode bool
         }{
             LabelID: label.ID,
             Diagram: diagram,
+			DarkMode: teVisSettings.DarkMode, 
         })
 	}
 	slog.Debug("createDiagrams", "Diagrams created.")
@@ -329,8 +336,6 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	//tmpl, err := template.ParseGlob("footer.html")
-	//tmpl := template.Must(template.ParseGlob("templates/*.html"))
 	tmpl, err := template.ParseFiles("formTemplate.html")
     if err != nil {
         http.Error(w, "Error parsing template", http.StatusInternalServerError)
@@ -349,7 +354,6 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func apiAccountGroupHandler(c *gin.Context) {   
 	userInput := c.Param("token")
 
-	//userInput := "91bbe972-f931-446a-97e4-016797e5293a"
 	slog.Debug("apiAccountGroupHandler", "Using Bearer", userInput)
 	//getAccountGroups(userInput)
 
@@ -401,7 +405,6 @@ func main() {
 	router.LoadHTMLGlob("templates/*")
 
 	// GIN - Routes
-
 	router.GET("/", func(c *gin.Context) {
         c.HTML(http.StatusOK, "formTemplate.html", gin.H{
             "title":   "Gin HTML Templates",
@@ -411,11 +414,16 @@ func main() {
 
 	router.POST("/submit", func(c *gin.Context) {		
 	    // Get the input value
+		teVisSettings.DarkMode = false
 	    teVisSettings.Token = c.PostForm("userInput")
 		teVisSettings.GraphLook = c.PostForm("radioDefault")
 		teVisSettings.GraphDirection = c.PostForm("radioDirection")
 		teVisSettings.GraphBrand = c.PostForm("radioBrandColors")
 		teVisSettings.AID = c.PostForm("ag")
+
+		if(teVisSettings.GraphLook == "dark"){
+			teVisSettings.DarkMode = true
+		}
 
 		slog.Debug("submitHandler", "Current teVis Settings:", teVisSettings)
 

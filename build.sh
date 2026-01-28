@@ -11,7 +11,7 @@ env GOOS=linux GOARCH=amd64 go build -o teVis -ldflags "-X main.curVersion=$(git
 
 echo "Code Build completed!"
 
-podman build -f Dockerfile -t docker.io/dirkw85/tevis:$(git describe --always --long)
-#podman build -f Dockerfile -t docker.io/dirkw85/tevis:latest
+#podman build -f Dockerfile -t docker.io/dirkw85/tevis:$(git describe --always --long)
+podman build -f Dockerfile -t docker.io/dirkw85/tevis:latest
 
 echo "Container Build completed!"

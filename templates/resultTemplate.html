@@ -43,7 +43,7 @@
             {{$currentID := .ID}}
             {{range $root.Diagrams.Tags}}
                 {{if eq .LabelID $currentID}}
-            <pre class="mermaid">
+            <pre class="mermaid {{if .DarkMode }}tevis-dark{{end}}">
 {{.Diagram}}
             </pre>    
             <br>      
