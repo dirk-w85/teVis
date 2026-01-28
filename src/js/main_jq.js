@@ -5,6 +5,7 @@ $(document).ready(function() {
         if(data.message === "pong"){
           console.log("teVis API is ready");
           $("#apiStatus").text("API ready");
+          $("#serverVersion").text("teVis Version: "+data.serverVersion);
         }else {
           console.error("teVis API is NOT  ready");
           $("#apiStatus").text("API NOT ready");
@@ -38,15 +39,11 @@ $(document).ready(function() {
 
     $('#teForm').on('submit', function(e) {
       //const $submitBtn = $('#submitBtn');
-      const $spinner = $('#loading-spinner');
-      //const $buttonText = $('#buttonText');
-
       // Show spinner and update button state
-      $spinner.removeClass('d-none');
-      //$buttonText.text('Loading...');
-      //$submitBtn.prop('disabled', true);
+      $('#loading-spinner').removeClass('d-none');
     });    
 
+// #---- TROUBLESHOOTING ----#
 //    console.log('Element found:', $('#getAG').length);  // Sollte 1 sein
 //
 //    if ($('#getAG').length === 0) {

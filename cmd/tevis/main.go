@@ -196,6 +196,11 @@ func getAccountGroups (token string) string {
 	return response
 }
 
+func getAlertRules (token string) string {
+    slog.Debug("getAlertRules", "Getting ALL Alert-Rules...")
+	return "response"
+}
+
 func getAllTests(teAGT string, teAID string) TEAllTests{
     slog.Debug("getAllTests", "Getting ALL Tests...")
 
@@ -239,7 +244,9 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 	slog.Debug("createDiagrams", "Creating Diagrams...")
 	for _, label := range teLabels.Tags {
         lines := []string{}
+		//lines = append(lines, "%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#049FD9', 'primaryTextColor': '#171D26', 'lineColor': '#64748B', 'fontSize': '13px'}}}%%")
 	    lines = append(lines, "---")
+		lines = append(lines, "theme: base")
 	    lines = append(lines, "config:")
 	    lines = append(lines, "  look: "+teVisSettings.GraphLook)	
 	    lines = append(lines, "---")
@@ -250,6 +257,7 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
         lines = append(lines, "classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF")
 
 		for _, assignedTest := range label.Assignments {
+			//lines = append(lines, "subgraph Tests['<b>Tests</b>']")
             for _, test := range teAllTests.Tests{
                 if(test.TestID == assignedTest.ID){
                     // Define the Tests
@@ -300,10 +308,10 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 						}
 						mermaidTestTarget = ""
 					}
-
 					lines = append(lines, mermaidTestTarget)
                 }
-            }	        
+            }			
+			//lines = append(lines, "end")	        
 		}
 
         diagram := strings.Join(lines, "\n")
@@ -321,7 +329,6 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-
 	//tmpl, err := template.ParseGlob("footer.html")
 	//tmpl := template.Must(template.ParseGlob("templates/*.html"))
 	tmpl, err := template.ParseFiles("formTemplate.html")
@@ -347,6 +354,17 @@ func apiAccountGroupHandler(c *gin.Context) {
 	//getAccountGroups(userInput)
 
 	c.String(http.StatusOK, getAccountGroups(userInput))
+    return
+}
+
+func apiAlertRulesHandler(c *gin.Context) {   
+	userInput := c.Param("token")
+
+	//userInput := "91bbe972-f931-446a-97e4-016797e5293a"
+	slog.Debug("apiAlertRulesHandler", "Using Bearer", userInput)
+	//getAccountGroups(userInput)
+
+	c.String(http.StatusOK, getAlertRules(userInput))
     return
 }
 
@@ -436,10 +454,13 @@ func main() {
 	router.GET("/api/ping", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{
             "message": "pong",
+			"serverVersion": teVisSettings.Version,
         })
     })
 
 	router.GET("/api/accountgroups/:token", apiAccountGroupHandler)
+
+	router.GET("/api/alertrules/:token", apiAlertRulesHandler)
 
 	// Start server
     router.Run(":"+teVisSettings.ServerPort)
