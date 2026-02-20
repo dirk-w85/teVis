@@ -5,10 +5,10 @@
         <h2>ThousandEyes PoV Visualizer</h2>
         <form action="/submit" method="POST" id="teForm">
 		    <div class="form-floating mb-3">
-            <input type="text" class="form-control" id="userInput" name="userInput" placeholder="name@example.com" required>
+            <input type="text" class="form-control" id="userInput" name="userInput" required>
             <label for="floatingInput">Bearer Token</label>
         	</div>
-            <button type="button" id="getAG" class="btn btn-primary me-3">Get Account-Groups</button>
+            <button type="button" id="getAG">Get Account-Groups</button>
             <br>
             <div id="dropdown" class="d-flex justify-content-center d-none">
                 <p>Account Group: 
@@ -20,7 +20,7 @@
             <p>Graph Direction:</p>
             <div class="form-check">
               <input class="form-check-input" type="radio" value="LR" name="radioDirection" id="radioDirection1" checked>
-              <label class="form-check-label" for="radioDefault1">Left-to-Right</label>
+              <label class="form-check-label" for="radioDirection1">Left-to-Right</label>
             </div>
             <div class="form-check">
               <input class="form-check-input" type="radio" value="TD" name="radioDirection" id="radioDirection2">
@@ -37,7 +37,7 @@
               <label class="form-check-label" for="radioDefault1">dark</label>
             </div>
             <br>            
-            <button type="submit" id="submitBtn" class="btn btn-primary me-3" disabled>Create Diagrams</button>
+            <button type="submit" id="submitBtn" disabled>Create Diagrams</button>
             <div class="d-flex justify-content-center d-none" id="loading-spinner">
               <div class="spinner-border" role="status">
                 <span class="visually-hidden">Loading...</span>

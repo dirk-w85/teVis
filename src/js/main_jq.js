@@ -36,6 +36,28 @@ $(document).ready(function() {
       });
     });
 
+    $('#labelBtn').click(function(){
+      console.log("Clicked");
+      console.log($("#userInput").val())
+
+      $.get("/api/labels/"+$("#userInput").val(), function(data, status){
+        if(status === "success"){
+          //console.log(data);  
+          data = JSON.parse(data)
+
+          $.each(data.tags, function(index, tag) {
+            console.log(tag.tag);
+            $('#label').append('<option value="' + tag.id + '">' + tag.value + '</option>');
+          });
+
+          $('#dropdownLabel').removeClass('d-none');
+
+        }else {
+          console.error("LABEL GET Failed");
+        };
+      });
+    });
+
 
     $('#teForm').on('submit', function(e) {
       //const $submitBtn = $('#submitBtn');

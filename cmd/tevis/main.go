@@ -193,6 +193,22 @@ func getAccountGroups (token string) string {
 	return response
 }
 
+func getLabels2 (token string) string {
+    slog.Debug("getLabels2", "Getting ALL Labels...")
+	getData := map[string]string{
+		"Token": token,
+	}
+	// Getting TE Labels 
+	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags?expand=assignments")
+	response := helper.GETrequest(url,getData)
+	//fmt.Println(response)
+	var teLabels TELabels
+	json.Unmarshal([]byte(response), &teLabels)
+	slog.Debug("getLabels2", "Labels received", len(teLabels.Tags))
+
+	return response
+}
+
 func getAlertRules (token string) string {
     slog.Debug("getAlertRules", "Getting ALL Alert-Rules...")
 	return "response"
@@ -372,6 +388,15 @@ func apiAlertRulesHandler(c *gin.Context) {
     return
 }
 
+func apiLabelsHandler(c *gin.Context) {   
+	userInput := c.Param("token")
+
+	slog.Debug("apiLabelsHandler", "Using Bearer", userInput)
+
+	c.String(http.StatusOK, getLabels2(userInput))
+    return
+}
+
 func main() {
 	var teVisSettings TEVisSettings
 	teVisSettings.GraphLook = "classic"
@@ -469,6 +494,8 @@ func main() {
 	router.GET("/api/accountgroups/:token", apiAccountGroupHandler)
 
 	router.GET("/api/alertrules/:token", apiAlertRulesHandler)
+
+	router.GET("/api/labels/:token", apiLabelsHandler)
 
 	// Start server
     router.Run(":"+teVisSettings.ServerPort)

@@ -1,5 +1,128 @@
 @charset "UTF-8";
 
+  /* Cisco Primary Colors */
+  :root {
+    --midnight-blue: #07182D;
+    --cisco-blue: #02C8FF;
+    --medium-blue: #0A60FF;
+    --white: #FFFFFF;
+    --magenta: #FF007F; /* Accent - use sparingly */
+    --orange: #FF9000;  /* Accent - use sparingly */
+  }
+
+  body {
+    background-color: var(--midnight-blue);
+    font-family: 'CiscoSansTT Light', Arial, sans-serif;
+    color: var(--white);
+    margin: 0;
+  }
+
+  /* Navbar styles */
+  .navbar {
+    background-color: var(--medium-blue);
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1.5rem;
+    box-shadow: 0 2px 4px rgba(2, 200, 255, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  .navbar img.logo {
+    height: 32px;
+    width: auto;
+  }
+
+  /* Center the form vertically and horizontally */
+  .page-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 56px); /* subtract navbar height */
+  }
+
+  .form-container {
+    background-color: var(--white);
+    border-radius: 12px;
+    padding: 2rem 3rem;
+    box-shadow: 0 4px 12px rgba(2, 200, 255, 0.3);
+    
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    color: var(--midnight-blue);
+  }
+
+
+  label {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  input[type="text"],
+  select {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--cisco-blue);
+    border-radius: 8px;
+    font-size: 1rem;
+    color: var(--midnight-blue);
+    outline-offset: 2px;
+    transition: border-color 0.3s ease;
+    background-color: var(--white);
+  }
+
+  input[type="text"]:focus,
+  select:focus {
+    border-color: var(--medium-blue);
+    box-shadow: 0 0 8px var(--medium-blue);
+    outline: none;
+  }
+
+  /* Radio buttons container */
+  .radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  input[type="radio"] {
+    accent-color: var(--cisco-blue);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  button {
+    background-color: var(--cisco-blue);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 4px 8px rgba(2, 200, 255, 0.5);
+  }
+
+  button:hover,
+  button:focus {
+    background-color: var(--medium-blue);
+    box-shadow: 0 6px 12px rgba(10, 96, 255, 0.7);
+    outline: none;
+  }
+
+  footer {
+    background-color: var(--medium-blue);
+  }
+
+
 .tevis-dark {
     background-color: #07182D;
 }
