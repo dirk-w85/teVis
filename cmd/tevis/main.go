@@ -209,6 +209,47 @@ func getLabels2 (token string) string {
 	return response
 }
 
+func getDiagram (token string, label string) string {
+    slog.Debug("getDiagram", "Getting Diagram for Label...", label)
+	//getData := map[string]string{
+	//	"Token": token,
+	//}
+	// Getting TE Labels 
+	//url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags?expand=assignments")
+	//response := helper.GETrequest(url,getData)
+	//fmt.Println(response)
+	//var teLabels TELabels
+	//json.Unmarshal([]byte(response), &teLabels)
+	//slog.Debug("getLabels2", "Labels received", len(teLabels.Tags))
+
+	response := `
+---
+title: TEST Diagram - Label `+label+`
+theme: base
+config:
+  look: classic
+---
+graph LR
+classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000
+classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF
+classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF
+test_7951870["**CTF - thousandeyes-en.ciscoctf.io - DNS**<br>*Type: dns-server<br>Interval: 600s*"]:::teTest
+agent_7(["Amsterdam, Netherlands<br>*cloud*"]):::teAgent
+agent_32(["London, England<br>*cloud*"]):::teAgent
+agent_61(["Las Vegas, NV<br>*cloud*"]):::teAgent
+agent_145(["San Diego, CA<br>*cloud*"]):::teAgent
+agent_5072(["Melbourne, Australia<br>*cloud*"]):::teAgent
+agent_7 --> test_7951870
+agent_32 --> test_7951870
+agent_61 --> test_7951870
+agent_145 --> test_7951870
+agent_5072 --> test_7951870
+test_7951870 -- Trace: classic --> srv_7951870_726492["<p>jobs.ns.cloudflare.com.</p>"]:::teTarget
+test_7951870 -- Trace: classic --> srv_7951870_3320871["<p>gina.ns.cloudflare.com.</p>"]:::teTarget
+`
+	return response
+}
+
 func getAlertRules (token string) string {
     slog.Debug("getAlertRules", "Getting ALL Alert-Rules...")
 	return "response"
@@ -397,6 +438,16 @@ func apiLabelsHandler(c *gin.Context) {
     return
 }
 
+func apiDiagramHandler(c *gin.Context) {   
+	token := c.Param("token")
+	label := c.Param("label")
+
+	slog.Debug("apiDiagramHandler", "Using Bearer", token, "Label", label)
+
+	c.String(http.StatusOK, getDiagram(token, label))
+    return
+}
+
 func main() {
 	var teVisSettings TEVisSettings
 	teVisSettings.GraphLook = "classic"
@@ -496,6 +547,8 @@ func main() {
 	router.GET("/api/alertrules/:token", apiAlertRulesHandler)
 
 	router.GET("/api/labels/:token", apiLabelsHandler)
+
+	router.GET("/api/diagram/:token/:label", apiDiagramHandler)
 
 	// Start server
     router.Run(":"+teVisSettings.ServerPort)

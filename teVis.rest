@@ -13,6 +13,11 @@ GET http://localhost:8090/api/alertrules/5d2577e6-8da3-4337-8e08-cb9136a2503e
 GET http://localhost:8090/api/labels/5d2577e6-8da3-4337-8e08-cb9136a2503e
 
 
+
+### GET Diagram
+GET http://localhost:8090/api/diagram/5d2577e6-8da3-4337-8e08-cb9136a2503e/2a9e59e5-aa2b-4dd0-86a2-b1fd7ba7cdc0
+
+
 ### Submit Form
 POST http://localhost:8090/submit
 Content-Type: application/x-www-form-urlencoded

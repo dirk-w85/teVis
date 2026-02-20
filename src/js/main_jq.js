@@ -30,6 +30,8 @@ $(document).ready(function() {
 
           $('#graphSettings').removeClass('d-none');
 
+          $('#labelBtn').removeClass('d-none');
+
         }else {
           console.error("AG GET Failed");
         };
@@ -42,7 +44,6 @@ $(document).ready(function() {
 
       $.get("/api/labels/"+$("#userInput").val(), function(data, status){
         if(status === "success"){
-          //console.log(data);  
           data = JSON.parse(data)
 
           $.each(data.tags, function(index, tag) {
@@ -51,12 +52,38 @@ $(document).ready(function() {
           });
 
           $('#dropdownLabel').removeClass('d-none');
+          $('#diagramBtn').removeClass('d-none');
 
         }else {
           console.error("LABEL GET Failed");
         };
       });
     });
+
+    $('#diagramBtn').click(function(){
+      console.log("Clicked");
+      console.log($("#userInput").val())
+      console.log($("#dropdownLabel option:selected").val())
+
+      $.get("/api/diagram/"+$("#userInput").val()+"/"+$("#dropdownLabel option:selected").val(), function(data, status){
+        if(status === "success"){                   
+          console.log(data);
+
+          $('#mermaidBox').empty(); // Clear previous diagram
+          $('#mermaidBox').removeAttr('data-processed');
+          $('#mermaidBox').append(data);
+
+          mermaid.run();
+          
+          $('#mermaidCard').removeClass('d-none');
+
+        }else {
+          console.error("LABEL GET Failed");
+        };
+      });
+
+    });
+
 
 
     $('#teForm').on('submit', function(e) {
