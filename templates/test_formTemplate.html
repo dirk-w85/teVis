@@ -20,14 +20,24 @@
         	</div>
             <button type="button" id="getAG" >Get Account-Groups</button>
             <br>
+
+            <hr>
             <div id="dropdown" class="d-flex justify-content-center d-none">
                 <p>Account Group: 
                 <select id="ag" name="ag"></select>
                 </p>
             </div>
             <hr>
+            <button id="labelBtn">Get Labels</button>
+            <div id="dropdownLabel" class="d-flex justify-content-center d-none">
+              <p>Labels: 
+              <select id="label" name="label"></select>
+              </p>
+            </div>
+            <hr>
             <div id="graphSettings" class="d-none">
-            <p>Graph Direction:</p>
+            <p>Graph Settings</p>  
+            <p>Direction:</p>
             <div class="form-check">
               <input class="form-check-input" type="radio" value="LR" name="radioDirection" id="radioDirection1" checked>
               <label class="form-check-label" for="radioDefault1">Left-to-Right</label>
@@ -39,35 +49,22 @@
             <br>
             <p>Look:</p>
             <div class="form-check">
-              <input class="form-check-input" type="radio" value="classic" name="radioDefault" id="radioDefault1" checked>
+              <input class="form-check-input" type="radio" value="classic" name="radioLook" id="radioDefault1" checked>
               <label class="form-check-label" for="radioDefault1">classic</label>
             </div>
             <div class="form-check">
-              <input class="form-check-input" type="radio" value="dark" name="radioDefault" id="radioDefault1">
+              <input class="form-check-input" type="radio" value="dark" name="radioLook" id="radioDefault2">
               <label class="form-check-label" for="radioDefault1">dark</label>
             </div>
-            <br>   
-            <div class="d-flex justify-content-center d-none" id="loading-spinner">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-        <br>
-        <br>
-        <div class="alert alert-info" role="alert">
-            It can take a few seconds (10-25s) for the result page to load when you click the <b>Submit</b>-Button. Just be patient!
+            <br>               
         </div>
-            </div>
-        </form>
-
-        <button id="labelBtn" >Get Labels</button>
-        <div id="dropdownLabel" class="d-flex justify-content-center d-none">
-              <p>Labels: 
-              <select id="label" name="label"></select>
-              </p>
-        </div>
+        </form>        
         <button id="diagramBtn" >Get Diagram</button>
-
+        <div class="d-flex justify-content-center d-none" id="loading-spinner">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
         <div id="mermaidCard" class="card d-none">
           <div class="card-body" >
             <br>
@@ -75,7 +72,6 @@
             <br>      
           </div>
         </div>
-
 	<script type="module">
       import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
        window.mermaid = mermaid; 

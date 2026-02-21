@@ -27,9 +27,7 @@ $(document).ready(function() {
           });
 
           $('#dropdown').removeClass('d-none');
-
           $('#graphSettings').removeClass('d-none');
-
           $('#labelBtn').removeClass('d-none');
 
         }else {
@@ -40,20 +38,22 @@ $(document).ready(function() {
 
     $('#labelBtn').click(function(){
       console.log("Clicked");
-      console.log($("#userInput").val())
+      console.log($("#userInput").val())      
 
-      $.get("/api/labels/"+$("#userInput").val(), function(data, status){
+      $.get("/api/labels/"+$("#userInput").val()+"/"+$("#ag option:selected").val(), function(data, status){
         if(status === "success"){
           data = JSON.parse(data)
+          $('#label').empty();
 
           $.each(data.tags, function(index, tag) {
-            console.log(tag.tag);
-            $('#label').append('<option value="' + tag.id + '">' + tag.value + '</option>');
+            if(tag.objectType == "test"){
+              console.log(tag.tag);
+              $('#label').append('<option value="' + tag.id + '">' + tag.value + '</option>');
+            }
           });
 
           $('#dropdownLabel').removeClass('d-none');
           $('#diagramBtn').removeClass('d-none');
-
         }else {
           console.error("LABEL GET Failed");
         };
@@ -64,8 +64,19 @@ $(document).ready(function() {
       console.log("Clicked");
       console.log($("#userInput").val())
       console.log($("#dropdownLabel option:selected").val())
+      console.log($("#ag option:selected").val())
 
-      $.get("/api/diagram/"+$("#userInput").val()+"/"+$("#dropdownLabel option:selected").val(), function(data, status){
+
+      $('#mermaidCard').addClass('d-none');
+      if($('input[name="radioLook"]:checked').val() == "dark"){
+        $('#mermaidCard').addClass('tevis-dark');
+      }else{
+        $('#mermaidCard').removeClass('tevis-dark');
+      }
+
+      $('#loading-spinner').removeClass('d-none');      
+
+      $.get("/api/diagram/"+$("#userInput").val()+"/"+$("#ag option:selected").val()+"/"+$("#dropdownLabel option:selected").val()+"/"+$('input[name="radioDirection"]:checked').val()+"/"+$('input[name="radioLook"]:checked').val(), function(data, status){
         if(status === "success"){                   
           console.log(data);
 
@@ -75,21 +86,17 @@ $(document).ready(function() {
 
           mermaid.run();
           
+          $('#loading-spinner').addClass('d-none');
           $('#mermaidCard').removeClass('d-none');
-
         }else {
           console.error("LABEL GET Failed");
         };
       });
-
     });
-
-
 
     $('#teForm').on('submit', function(e) {
       //const $submitBtn = $('#submitBtn');
-      // Show spinner and update button state
-      $('#loading-spinner').removeClass('d-none');
+      // Show spinner and update button state      
     });    
 
 // #---- TROUBLESHOOTING ----#

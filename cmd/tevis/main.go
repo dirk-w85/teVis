@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const baseVersion = "v0.2.1."
+const baseVersion = "v0.3.1."
 var curVersion string
 var curBuild string
 
@@ -21,6 +21,7 @@ type TEVisSettings struct {
 	Build		string
 	Token		string
 	AID			string
+	Label		string
 	Loglevel	string
 	GraphLook	string
 	GraphBrand	string
@@ -136,6 +137,48 @@ type TEAllTests struct {
 	} `json:"tests"`
 }
 
+type TETest struct {
+		Interval              int       `json:"interval"`
+		TestID                string    `json:"testId"`
+		BgpMeasurements       bool      `json:"bgpMeasurements"`
+		UsePublicBgp          bool      `json:"usePublicBgp"`
+		Description           string    `json:"description"`
+		LiveShare             bool      `json:"liveShare"`
+		TestName              string    `json:"testName"`
+		CreatedBy             string    `json:"createdBy"`
+		ModifiedBy            string    `json:"modifiedBy"`
+		SavedEvent            bool      `json:"savedEvent"`
+		Type                  string    `json:"type"`
+		AlertsEnabled         bool      `json:"alertsEnabled"`
+		Enabled               bool      `json:"enabled"`
+		BandwidthMeasurements bool      `json:"bandwidthMeasurements"`
+		ContinuousMode        bool      `json:"continuousMode"`
+		DscpID                string    `json:"dscpId"`
+		Ipv6Policy            string    `json:"ipv6Policy"`
+		MtuMeasurements       bool      `json:"mtuMeasurements"`
+		NumPathTraces         int       `json:"numPathTraces"`
+		PathTraceMode         string    `json:"pathTraceMode"`
+		ProbeMode             string    `json:"probeMode"`
+		NetworkMeasurements   bool      `json:"networkMeasurements"`
+		Protocol              string    `json:"protocol"`
+		RandomizedStartTime   bool      `json:"randomizedStartTime"`
+		Server                string    `json:"server"`
+		Dscp                  string    `json:"dscp"`
+		URL                  string    `json:"url"`
+		DNSServers		[]struct {
+			ServerID		  string 	`json:"serverid"`
+			ServerName		  string 	`json:"serverName"`
+		} `json:"dnsServers"`
+		Links                 struct {
+			Self struct {
+				Href string `json:"href"`
+			} `json:"self"`
+			TestResults []struct {
+				Href string `json:"href"`
+			} `json:"testResults"`
+		} `json:"_links"`
+}
+
 type TELabels struct {
 	Tags []struct {
 		ID          string    `json:"id"`
@@ -153,6 +196,23 @@ type TELabels struct {
 			Type string `json:"type"`
 		} `json:"assignments"`
 	} `json:"tags"`
+}
+
+type TELabel struct {
+		ID          string    `json:"id"`
+		Aid         int64     `json:"aid"`
+		ObjectType  string    `json:"objectType"`
+		Key         string    `json:"key"`
+		Value       string    `json:"value"`
+		Color       string    `json:"color"`
+		Icon        string    `json:"icon"`
+		Description any       `json:"description"`
+		AccessType  string    `json:"accessType"`
+		LegacyID    int64     `json:"legacyId"`
+		Assignments []struct {
+			ID   string `json:"id"`
+			Type string `json:"type"`
+		} `json:"assignments"`
 }
 
 func getLabels (teVisSettings TEVisSettings) TELabels {
@@ -193,13 +253,13 @@ func getAccountGroups (token string) string {
 	return response
 }
 
-func getLabels2 (token string) string {
+func getLabels2 (token string, aid string) string {
     slog.Debug("getLabels2", "Getting ALL Labels...")
 	getData := map[string]string{
 		"Token": token,
 	}
 	// Getting TE Labels 
-	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags?expand=assignments")
+	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags?aid="+aid+"?expand=assignments")
 	response := helper.GETrequest(url,getData)
 	//fmt.Println(response)
 	var teLabels TELabels
@@ -209,45 +269,106 @@ func getLabels2 (token string) string {
 	return response
 }
 
-func getDiagram (token string, label string) string {
-    slog.Debug("getDiagram", "Getting Diagram for Label...", label)
-	//getData := map[string]string{
-	//	"Token": token,
-	//}
-	// Getting TE Labels 
-	//url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags?expand=assignments")
-	//response := helper.GETrequest(url,getData)
-	//fmt.Println(response)
-	//var teLabels TELabels
-	//json.Unmarshal([]byte(response), &teLabels)
-	//slog.Debug("getLabels2", "Labels received", len(teLabels.Tags))
+func getLabelDetails (teVisSettings TEVisSettings) TELabel {
+	slog.Debug("getLabelDetails", "Getting Details for Label ", teVisSettings.Label)
 
-	response := `
----
-title: TEST Diagram - Label `+label+`
-theme: base
-config:
-  look: classic
----
-graph LR
-classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000
-classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF
-classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF
-test_7951870["**CTF - thousandeyes-en.ciscoctf.io - DNS**<br>*Type: dns-server<br>Interval: 600s*"]:::teTest
-agent_7(["Amsterdam, Netherlands<br>*cloud*"]):::teAgent
-agent_32(["London, England<br>*cloud*"]):::teAgent
-agent_61(["Las Vegas, NV<br>*cloud*"]):::teAgent
-agent_145(["San Diego, CA<br>*cloud*"]):::teAgent
-agent_5072(["Melbourne, Australia<br>*cloud*"]):::teAgent
-agent_7 --> test_7951870
-agent_32 --> test_7951870
-agent_61 --> test_7951870
-agent_145 --> test_7951870
-agent_5072 --> test_7951870
-test_7951870 -- Trace: classic --> srv_7951870_726492["<p>jobs.ns.cloudflare.com.</p>"]:::teTarget
-test_7951870 -- Trace: classic --> srv_7951870_3320871["<p>gina.ns.cloudflare.com.</p>"]:::teTarget
-`
-	return response
+	getData := map[string]string{
+		"Token": teVisSettings.Token,
+	}
+	 
+	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags/"+teVisSettings.Label+"?expand=assignments")
+	response := helper.GETrequest(url,getData)
+	var teLabel TELabel
+	json.Unmarshal([]byte(response), &teLabel)
+
+	slog.Debug("getLabelDetails", "Assignments for Label", len(teLabel.Assignments))
+
+	return teLabel
+}
+
+func getDiagram (teVisSettings TEVisSettings) string {
+    slog.Debug("getDiagram", "Getting Diagram for Label...", teVisSettings.Label)
+	slog.Debug("getDiagram", "Creating Diagrams...")
+
+
+	// Getting TE Label Details
+	teLabel := getLabelDetails(teVisSettings)
+
+	// Getting ALL Tests
+	teAllTests := getAllTests(teVisSettings.Token, teVisSettings.AID)
+
+	lines := []string{}
+	lines = append(lines, "---")
+	lines = append(lines, "title: "+teLabel.Value)
+	lines = append(lines, "theme: base")
+	lines = append(lines, "config:")
+	lines = append(lines, "---")
+	lines = append(lines, "graph "+teVisSettings.GraphDirection)
+
+	if(teVisSettings.GraphLook == "dark"){
+		lines = append(lines, "linkStyle default stroke:#ffffff")
+	}		
+
+	lines = append(lines, "classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000")
+    lines = append(lines, "classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF")
+    lines = append(lines, "classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF")
+
+	for _, assignedTest := range teLabel.Assignments {
+		for _, test := range teAllTests.Tests{
+			if(test.TestID == assignedTest.ID){				
+				mermaidTest := ""
+				mermaidTest = fmt.Sprintf("test_%s[\"**%s**<br>*Type: %s<br>Interval: %ds*\"]:::teTest", test.TestID, test.TestName, test.Type, test.Interval )
+				lines = append(lines, mermaidTest)
+
+				teTestDetail := getTestDetails(test.Links.Self.Href, teVisSettings.Token)
+				// Define the Agents
+                mermaidAgent := ""
+
+				for _, agent := range teTestDetail.Agents {
+                    if(agent.AgentType == "cloud"){
+                        mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s*\"]):::teAgent",agent.AgentID, agent.AgentName, agent.AgentType )
+                    }
+
+                    if(agent.AgentType == "enterprise"){
+                        mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent",agent.AgentID, agent.AgentName, agent.IPAddresses[0], agent.AgentType )
+                    }
+                    lines = append(lines, mermaidAgent)
+                }
+
+                // Connecting Agents to Tests
+                for _, agent := range teTestDetail.Agents {
+                    lines = append(lines, "agent_"+agent.AgentID+" --> test_"+test.TestID)
+                }
+
+				// Connecting Tests to Test-Targets
+				mermaidTestTarget := "test_"+test.TestID+" -- unsupported --> target_dummy>Test-Type not yet supported in teVis]:::teTarget"
+
+				if(test.Type == "agent-to-server"){
+					mermaidTestTarget = fmt.Sprintf("test_%s -- %s --> srv_%s[\"%s\"]:::teTarget", test.TestID, test.Protocol, test.TestID, test.Server)
+				}
+
+				if(test.Type == "http-server"){
+					mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.Protocol, test.PathTraceMode, test.TestID, test.URL)
+				}
+
+				if(test.Type == "page-load"){
+					mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.Protocol, test.PathTraceMode, test.TestID, test.URL)
+				}
+
+				if(test.Type == "dns-server"){
+					for _, dnsServer := range test.DNSServers {
+						mermaidTestTarget = fmt.Sprintf("test_%s -- Trace: %s --> srv_%s_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.PathTraceMode, test.TestID, dnsServer.ServerID, dnsServer.ServerName)
+						lines = append(lines, mermaidTestTarget)
+					}
+					mermaidTestTarget = ""
+				}
+				lines = append(lines, mermaidTestTarget)
+			}
+		}
+	}
+	diagram := strings.Join(lines, "\n")
+
+	return diagram
 }
 
 func getAlertRules (token string) string {
@@ -273,6 +394,28 @@ func getAllTests(teAGT string, teAID string) TEAllTests{
 	slog.Debug("getAllTests", "CEA Tests received", len(teAllTests.Tests))
 	slog.Debug("getAllTests", "Received ALL Tests...")
     return teAllTests
+}
+
+func getTest(token string, testID string) TETest{
+    slog.Debug("getTest", "Getting Test details...")
+	slog.Debug("getTest", testID)
+
+    getData := map[string]string{
+		"Token": token,
+	}
+
+	// Getting  TE Test
+	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tests/"+testID)
+	fmt.Println(url)
+	response := helper.GETrequest(url,getData)
+    //fmt.Println(response)
+    var teTest TETest
+    json.Unmarshal([]byte(response), &teTest)
+
+	slog.Debug("getTest", "CEA Test received", teTest)
+	slog.Debug("getTest", "Received Test Details...")
+
+    return teTest
 }
 
 func getTestDetails(testURL string, teAGT string) TETestDetail {
@@ -308,7 +451,7 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 	    lines = append(lines, "---")
 	    lines = append(lines, "graph "+teVisSettings.GraphDirection)
 
-		if(teVisSettings.DarkMode){
+		if(teVisSettings.GraphLook == "dark"){
 			lines = append(lines, "linkStyle default stroke:#ffffff")
 		}
 		
@@ -421,7 +564,6 @@ func apiAccountGroupHandler(c *gin.Context) {
 func apiAlertRulesHandler(c *gin.Context) {   
 	userInput := c.Param("token")
 
-	//userInput := "91bbe972-f931-446a-97e4-016797e5293a"
 	slog.Debug("apiAlertRulesHandler", "Using Bearer", userInput)
 	//getAccountGroups(userInput)
 
@@ -430,21 +572,33 @@ func apiAlertRulesHandler(c *gin.Context) {
 }
 
 func apiLabelsHandler(c *gin.Context) {   
-	userInput := c.Param("token")
+	token := c.Param("token")
+	aid := c.Param("aid")
 
-	slog.Debug("apiLabelsHandler", "Using Bearer", userInput)
+	slog.Debug("apiLabelsHandler", "Using Bearer", token, "AID", aid)
 
-	c.String(http.StatusOK, getLabels2(userInput))
+	c.String(http.StatusOK, getLabels2(token, aid))
     return
 }
 
-func apiDiagramHandler(c *gin.Context) {   
-	token := c.Param("token")
-	label := c.Param("label")
+func apiDiagramHandler(c *gin.Context, teVisSettings TEVisSettings) {   
+	teVisSettings.Token = c.Param("token")
+	teVisSettings.Label = c.Param("label")
+	teVisSettings.AID = c.Param("aid")
 
-	slog.Debug("apiDiagramHandler", "Using Bearer", token, "Label", label)
+	if(c.Param("look") == "classic" || c.Param("look") == "dark"){
+		teVisSettings.GraphLook = c.Param("look")
+	}
 
-	c.String(http.StatusOK, getDiagram(token, label))
+	if(c.Param("direction") == "LR" || c.Param("direction") == "TD"){
+		teVisSettings.GraphDirection = c.Param("direction")
+	}	
+
+	fmt.Println(teVisSettings)
+	
+	slog.Debug("apiDiagramHandler", "Using Bearer", teVisSettings.Token, "Label", teVisSettings.Label, "AID", teVisSettings.AID)
+
+	c.String(http.StatusOK, getDiagram(teVisSettings))
     return
 }
 
@@ -546,9 +700,11 @@ func main() {
 
 	router.GET("/api/alertrules/:token", apiAlertRulesHandler)
 
-	router.GET("/api/labels/:token", apiLabelsHandler)
+	router.GET("/api/labels/:token/:aid", apiLabelsHandler)
 
-	router.GET("/api/diagram/:token/:label", apiDiagramHandler)
+	router.GET("/api/diagram/:token/:aid/:label/:direction/:look", func(c *gin.Context) {
+		apiDiagramHandler(c, teVisSettings)
+	})
 
 	// Start server
     router.Run(":"+teVisSettings.ServerPort)

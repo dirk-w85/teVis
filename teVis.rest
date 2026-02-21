@@ -10,12 +10,12 @@ GET http://localhost:8090/api/alertrules/5d2577e6-8da3-4337-8e08-cb9136a2503e
 
 
 ### GET Labels
-GET http://localhost:8090/api/labels/5d2577e6-8da3-4337-8e08-cb9136a2503e
+GET http://localhost:8090/api/labels/62744b58-518f-43a8-bb94-d2e6a6d365ab/2042941
 
 
 
 ### GET Diagram
-GET http://localhost:8090/api/diagram/5d2577e6-8da3-4337-8e08-cb9136a2503e/2a9e59e5-aa2b-4dd0-86a2-b1fd7ba7cdc0
+GET http://localhost:8090/api/diagram/5d2577e6-8da3-4337-8e08-cb9136a2503e/2089499/0f508a17-d447-4143-8da3-21220b111676/lr/classic
 
 
 ### Submit Form
