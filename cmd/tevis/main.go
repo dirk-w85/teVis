@@ -259,7 +259,7 @@ func getLabels2 (token string, aid string) string {
 		"Token": token,
 	}
 	// Getting TE Labels 
-	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags?aid="+aid+"?expand=assignments")
+	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags?aid="+aid+"&expand=assignments")
 	response := helper.GETrequest(url,getData)
 	//fmt.Println(response)
 	var teLabels TELabels
@@ -276,7 +276,8 @@ func getLabelDetails (teVisSettings TEVisSettings) TELabel {
 		"Token": teVisSettings.Token,
 	}
 	 
-	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags/"+teVisSettings.Label+"?expand=assignments")
+	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags/"+teVisSettings.Label+"?expand=assignments&aid="+teVisSettings.AID)
+	fmt.Println(url)
 	response := helper.GETrequest(url,getData)
 	var teLabel TELabel
 	json.Unmarshal([]byte(response), &teLabel)
@@ -290,12 +291,14 @@ func getDiagram (teVisSettings TEVisSettings) string {
     slog.Debug("getDiagram", "Getting Diagram for Label...", teVisSettings.Label)
 	slog.Debug("getDiagram", "Creating Diagrams...")
 
-
 	// Getting TE Label Details
 	teLabel := getLabelDetails(teVisSettings)
 
-	// Getting ALL Tests
-	teAllTests := getAllTests(teVisSettings.Token, teVisSettings.AID)
+	// Getting ALL Tests if Test-Assignments exist for the Label
+	var teAllTests TEAllTests
+	if(len(teLabel.Assignments)>0){
+		teAllTests = getAllTests(teVisSettings.Token, teVisSettings.AID)
+	}
 
 	lines := []string{}
 	lines = append(lines, "---")
@@ -317,7 +320,7 @@ func getDiagram (teVisSettings TEVisSettings) string {
 		for _, test := range teAllTests.Tests{
 			if(test.TestID == assignedTest.ID){				
 				mermaidTest := ""
-				mermaidTest = fmt.Sprintf("test_%s[\"**%s**<br>*Type: %s<br>Interval: %ds*\"]:::teTest", test.TestID, test.TestName, test.Type, test.Interval )
+				mermaidTest = fmt.Sprintf("test_%s[\"%s<br>*Type: %s<br>Interval: %ds*\"]:::teTest", test.TestID, test.TestName, test.Type, test.Interval )
 				lines = append(lines, mermaidTest)
 
 				teTestDetail := getTestDetails(test.Links.Self.Href, teVisSettings.Token)
@@ -365,6 +368,10 @@ func getDiagram (teVisSettings TEVisSettings) string {
 				lines = append(lines, mermaidTestTarget)
 			}
 		}
+	}
+
+	if(len(teLabel.Assignments)==0){
+		lines = append(lines, "no[No tests assigned to this label/tag.]:::teTest")
 	}
 	diagram := strings.Join(lines, "\n")
 
@@ -670,6 +677,13 @@ func main() {
 
 	router.GET("/test", func(c *gin.Context) {
         c.HTML(http.StatusOK, "test_formTemplate.html", gin.H{
+            "title":   "Gin HTML Templates",
+            "message": "Welcome to Gin templating!",
+        })
+    })
+
+	router.GET("/tests", func(c *gin.Context) {
+        c.HTML(http.StatusOK, "tests.html", gin.H{
             "title":   "Gin HTML Templates",
             "message": "Welcome to Gin templating!",
         })

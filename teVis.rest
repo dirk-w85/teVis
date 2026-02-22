@@ -15,7 +15,7 @@ GET http://localhost:8090/api/labels/62744b58-518f-43a8-bb94-d2e6a6d365ab/204294
 
 
 ### GET Diagram
-GET http://localhost:8090/api/diagram/5d2577e6-8da3-4337-8e08-cb9136a2503e/2089499/0f508a17-d447-4143-8da3-21220b111676/lr/classic
+GET http://localhost:8090/api/diagram/62744b58-518f-43a8-bb94-d2e6a6d365ab/2042941/ef1d9bc3-7a31-4649-a0ac-f37d5bd6d178/LR/classic
 
 
 ### Submit Form
@@ -23,3 +23,8 @@ POST http://localhost:8090/submit
 Content-Type: application/x-www-form-urlencoded
 
 userInput=5d2577e6-8da3-4337-8e08-cb9136a2503e&ag=2089499&radioDirection=LR&radioDefault=classic
+
+
+### Test
+GET https://api.thousandeyes.com/v7/tags/ef1d9bc3-7a31-4649-a0ac-f37d5bd6d178?expand=assignments&aid=2042941
+Authorization: Bearer 62744b58-518f-43a8-bb94-d2e6a6d365ab
