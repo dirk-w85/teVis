@@ -633,8 +633,8 @@ func main() {
 
 	router.StaticFile("/favicon.ico", "./templates/favicon.ico")
 	router.StaticFile("/js/main_jq.js", "./src/js/main_jq.js")
-	router.StaticFile("/js/app.js", "./src/js/app.js")
-	router.StaticFile("/js/test_app.jsx", "./src/js/test_app.jsx")
+	//router.StaticFile("/js/app.js", "./src/js/app.js")
+	//router.StaticFile("/js/test_app.jsx", "./src/js/test_app.jsx")
 	router.StaticFile("/css/tevis.css", "./src/css/tevis.css")
 	router.StaticFile("/testpage", "./templates/test_page.html")
 
@@ -643,7 +643,7 @@ func main() {
 
 	// GIN - Routes
 	router.GET("/", func(c *gin.Context) {
-        c.HTML(http.StatusOK, "formTemplate.html", gin.H{
+        c.HTML(http.StatusOK, "index.html", gin.H{
             "title":   "Gin HTML Templates",
             "message": "Welcome to Gin templating!",
         })
@@ -685,7 +685,21 @@ func main() {
 	router.GET("/tests", func(c *gin.Context) {
         c.HTML(http.StatusOK, "tests.html", gin.H{
             "title":   "Gin HTML Templates",
-            "message": "Welcome to Gin templating!",
+            "topic": "Cloud & Enterprise",
+        })
+    })
+
+	router.GET("/endpoint", func(c *gin.Context) {
+        c.HTML(http.StatusOK, "endpoint.html", gin.H{
+            "title":   "Gin HTML Templates",
+            "topic": "Endpoint",
+        })
+    })
+
+	router.GET("/alerts", func(c *gin.Context) {
+        c.HTML(http.StatusOK, "alerts.html", gin.H{
+            "title":   "Gin HTML Templates",
+            "topic": "Alert Rules",
         })
     })
 

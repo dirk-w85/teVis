@@ -2,7 +2,7 @@
 <div id="app">
     <div class="container py-4 px-3 mx-auto">
     <div class="form-container">
-        <h2>ThousandEyes PoV Visualizer - {{.topic}}</h2>      
+        <h2>ThousandEyes PoV Visualizer - {{ .topic }}</h2>       
 		    <div class="form-floating mb-3">
             <input type="text" id="userInput" name="userInput" size="40" placeholder="Bearer Token" required> 
             <button type="button" id="getAG">Get Account-Groups</button>           
@@ -15,7 +15,8 @@
             <div id="dropdownLabel" class="justify-content-center d-none">
               <label for="dropdown">Labels:</label>
               <select id="label" name="label"></select>
-            </div>            
+            </div>
+            
             <div id="graphSettings" class="d-none">
             <hr>
             <fieldset class="radio-group">
@@ -58,7 +59,7 @@
           import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
           window.mermaid = mermaid; 
           mermaid.initialize({ startOnLoad: false });
-      </script>      
+      </script>
     </div>
 	</div>
 </div>

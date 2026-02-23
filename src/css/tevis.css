@@ -18,7 +18,7 @@
   }
 
   /* Navbar styles */
-  .navbar {
+  nav.navbar {
     background-color: var(--medium-blue);
     display: flex;
     align-items: center;
@@ -28,9 +28,39 @@
     top: 0;
     z-index: 1000;
   }
-  .navbar img.logo {
+  nav.navbar img.logo {
     height: 32px;
     width: auto;
+  }
+
+  nav.navbar ul.nav-items {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  nav.navbar ul.nav-items li {
+    display: flex;
+    align-items: center;
+  }
+
+  nav.navbar ul.nav-items li a.nav-link {
+    color: var(--white);
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  nav.navbar ul.nav-items li a.nav-link:hover,
+  nav.navbar ul.nav-items li a.nav-link:focus {
+    background-color: var(--white);
+    color: var(--medium-blue);
+    outline: none;
   }
 
   /* Center the form vertically and horizontally */
@@ -119,8 +149,75 @@
   }
 
   footer {
-    background-color: var(--medium-blue);
+    background-color: var(--midnight-blue);
   }
+
+
+  /* Main content container */
+  main {
+    flex-grow: 1;
+    padding: 2rem 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    background-color: var(--white);
+    flex-wrap: wrap;
+  }
+
+  /* Card styles */
+    .card_index {
+      background-color: var(--midnight-blue);
+      color: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(2, 200, 255, 0.3);
+      width: 280px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-decoration: none;
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .card_index:hover,
+    .card_index:focus {
+      box-shadow: 0 8px 16px rgba(2, 200, 255, 0.6);
+      transform: translateY(-4px);
+      outline: none;
+    }
+
+    .card_index h2 {
+      margin: 0 0 1rem 0;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--cisco-blue);
+    }
+
+    .card_index p {
+      flex-grow: 1;
+      font-size: 1rem;
+      line-height: 1.4;
+      margin-bottom: 1.5rem;
+      color: var(--white);
+    }
+
+    .card_index .button {
+      align-self: flex-start;
+      background-color: var(--cisco-blue);
+      color: var(--midnight-blue);
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .card_index .button:hover,
+    .card_index .button:focus {
+      background-color: var(--medium-blue);
+      color: var(--white);
+      outline: none;
+    }
 
 .tevis-dark {
     background-color: #07182D;
