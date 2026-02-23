@@ -302,7 +302,7 @@ func getDiagram (teVisSettings TEVisSettings) string {
 
 	lines := []string{}
 	lines = append(lines, "---")
-	lines = append(lines, "title: "+teLabel.Value)
+	//lines = append(lines, "title: "+teLabel.Value)
 	lines = append(lines, "theme: base")
 	lines = append(lines, "config:")
 	lines = append(lines, "---")
