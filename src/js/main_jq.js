@@ -51,8 +51,30 @@ $(document).ready(function() {
           });
 
           $('#dropdown').removeClass('d-none');         
-          $('#labelBtn').removeClass('d-none');
+          //$('#labelBtn').removeClass('d-none');
           $('#getAG').addClass('d-none');
+
+
+          $.get("/api/labels/"+$("#userInput").val()+"/"+$("#ag option:selected").val(), function(data, status){
+            if(status === "success"){
+              data = JSON.parse(data)
+              $('#label').empty();
+            
+              $.each(data.tags, function(index, tag) {
+                if(tag.objectType == "test" && tag.assignments.length > 0 && tag.id.length>10){
+                  console.log(tag.tag);
+                  $('#label').append('<option value="' + tag.id + '">' + tag.value +' (Tests: '+tag.assignments.length+')</option>');
+                }
+              });
+            
+              $('#dropdownLabel').removeClass('d-none');
+              $('#diagramBtn').removeClass('d-none');
+              $('#graphSettings').removeClass('d-none');
+              $('#labelBtn').addClass('d-none');
+            }else {
+              console.error("LABEL GET Failed");
+            };
+          });
 
         }else {
           console.error("AG GET Failed");
