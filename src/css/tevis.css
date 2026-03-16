@@ -68,8 +68,17 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: calc(100vh - 56px); /* subtract navbar height */
+    height: calc(100vh - 556px); /* subtract navbar height */
   }
+
+
+  canvas {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 600px; /* subtract navbar height */
+  }
+
 
   .form-container {
     background-color: var(--white);
@@ -219,6 +228,12 @@
       outline: none;
     }
 
-.tevis-dark {
-    background-color: #07182D;
-}
+  .tevis-dark {
+      background-color: #07182D;
+  }
+
+  #network-container {
+      flex: 1;
+      background: transparent;
+      position: relative;
+    }

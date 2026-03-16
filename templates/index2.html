@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Endpoint Agent – Modern Dashboard</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg-base:       #07090f;
+      --bg-card:       #0d1117;
+      --bg-panel:      #111827;
+      --bg-hover:      #1a2235;
+      --border-subtle: #1e2d40;
+      --border-glow:   #049fd9;
+
+      --cisco-blue:    #049fd9;
+      --cisco-blue-2:  #00bceb;
+      --cisco-navy:    #0d274d;
+      --neon-green:    #00e5a0;
+      --neon-red:      #ff4d6d;
+      --neon-orange:   #ffaa00;
+      --neon-purple:   #a78bfa;
+      --text-primary:  #e8f0fe;
+      --text-secondary:#7a9bb5;
+      --text-muted:    #3d5166;
+
+      --glow-blue:   0 0 12px #049fd960, 0 0 30px #049fd930;
+      --glow-green:  0 0 12px #00e5a060, 0 0 30px #00e5a030;
+      --glow-red:    0 0 12px #ff4d6d60, 0 0 30px #ff4d6d30;
+      --glow-orange: 0 0 12px #ffaa0060, 0 0 30px #ffaa0030;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Animated background grid ─────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Top Bar ───────────────────────────────────────────── */
+    #topbar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 56px;
+      background: linear-gradient(90deg, #070c14 0%, #0a1628 50%, #070c14 100%);
+      border-bottom: 1px solid var(--border-subtle);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+
+    #topbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        var(--cisco-blue) 30%,
+        var(--cisco-blue-2) 50%,
+        var(--cisco-blue) 70%,
+        transparent 100%);
+      opacity: 0.6;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .cisco-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cisco-logo-dots {
+      display: grid;
+      grid-template-columns: repeat(3, 6px);
+      gap: 3px;
+    }
+
+    .cisco-logo-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cisco-blue);
+      box-shadow: var(--glow-blue);
+    }
+
+    .cisco-logo-dots span:nth-child(1),
+    .cisco-logo-dots span:nth-child(3),
+    .cisco-logo-dots span:nth-child(7),
+    .cisco-logo-dots span:nth-child(9) { opacity: 0.3; }
+
+    .cisco-wordmark {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--cisco-blue);
+      text-shadow: var(--glow-blue);
+      text-transform: uppercase;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border-subtle);
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.3px;
+    }
+
+    .topbar-title span {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .status-pill.live {
+      background: #00e5a012;
+      border: 1px solid #00e5a040;
+      color: var(--neon-green);
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--neon-green);
+      box-shadow: var(--glow-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .time-display {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Main Layout ───────────────────────────────────────── */
+    #main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Canvas ────────────────────────────────────────────── */
+    #network-container {
+      flex: 1;
+      background: transparent;
+      position: relative;
+    }
+
+    /* ── Sidebar ───────────────────────────────────────────── */
+    #sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #0a1220 0%, #080e1a 100%);
+      border-left: 1px solid var(--border-subtle);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    #sidebar::-webkit-scrollbar { display: none; }
+
+    /* ── Sidebar Sections ──────────────────────────────────── */
+    .s-section-title {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── Agent Card ────────────────────────────────────────── */
+    .agent-card {
+      background: linear-gradient(135deg, #0a1e3d 0%, #0d1628 100%);
+      border: 1px solid #049fd940;
+      border-radius: 10px;
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cisco-blue), transparent);
+    }
+
+    .agent-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--cisco-blue-2);
+      margin-bottom: 4px;
+      text-shadow: 0 0 10px #049fd960;
+    }
+
+    .agent-card-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ── Stat Grid ─────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .stat-card:hover { border-color: var(--cisco-blue); }
+
+    .stat-card-value {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-card-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .stat-total  { color: var(--cisco-blue-2); text-shadow: 0 0 10px #049fd960; }
+    .stat-green  { color: var(--neon-green);   text-shadow: 0 0 10px #00e5a060; }
+    .stat-red    { color: var(--neon-red);     text-shadow: 0 0 10px #ff4d6d60; }
+    .stat-orange { color: var(--neon-orange);  text-shadow: 0 0 10px #ffaa0060; }
+
+    /* ── Legend Items ──────────────────────────────────────── */
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      border: 1px solid transparent;
+      margin-bottom: 5px;
+      transition: all 0.2s;
+      cursor: default;
+    }
+
+    .legend-item:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-subtle);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .legend-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.3;
+    }
+
+    .legend-text strong {
+      color: var(--text-primary);
+      display: block;
+      font-size: 12px;
+    }
+
+    /* ── Divider ───────────────────────────────────────────── */
+    .s-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-subtle), transparent);
+    }
+
+    /* ── Toolbar (bottom of canvas) ────────────────────────── */
+    #canvas-toolbar {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+      background: #0a1220cc;
+      border: 1px solid var(--border-subtle);
+      border-radius: 30px;
+      padding: 6px 10px;
+      backdrop-filter: blur(16px);
+    }
+
+    .toolbar-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+      color: var(--text-secondary);
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .toolbar-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--cisco-blue);
+      color: var(--cisco-blue);
+      box-shadow: var(--glow-blue);
+    }
+
+    /* ── Tooltip ───────────────────────────────────────────── */
+    .vis-tooltip {
+      background: #080e1af0 !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--cisco-blue) !important;
+      border-radius: 8px !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 12px !important;
+      padding: 10px 14px !important;
+      line-height: 1.7 !important;
+      box-shadow: var(--glow-blue) !important;
+      backdrop-filter: blur(12px) !important;
+      white-space: pre !important;
+    }
+
+    /* ── Corner watermark ──────────────────────────────────── */
+    #watermark {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      z-index: 5;
+    }
+
+    /* ── Scrollbar for sidebar ─────────────────────────────── */
+    #sidebar { scrollbar-width: thin; scrollbar-color: #1e2d40 transparent; }
+  </style>
+</head>
+<body>
+
+<!-- ── Top Bar ─────────────────────────────────────────────── -->
+<div id="topbar">
+  <div class="topbar-left">
+    <div class="cisco-logo">
+      <img src="img/teVisLogo.png" width="50px"></img>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-title">
+      ThousandEyes Visualizer
+      
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-pill live">
+      <div class="pulse-dot"></div>
+      Live
+    </div>
+    <div class="time-display" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- ── Main ────────────────────────────────────────────────── -->
+<div id="main">
+
+  <!-- Canvas -->
+  <div id="network-container">
+    <br>
+    <!-- Stats -->
+    <div>
+      <div class="stat-grid">
+        <a href="tests">
+        <div class="stat-card">
+          <div class="stat-card-value stat-total">Cloud & Enterprise Agents</div>
+          <div class="stat-card-label">Tests</div>
+        </div>
+        </a>
+        <a href="#">
+        <div class="stat-card">
+          <div class="stat-card-value stat-orange">Endpoint Agents</div>
+          <div class="stat-card-label">Tests</div>
+        </div>
+        </a>
+        <a href="#">
+        <div class="stat-card">
+          <div class="stat-card-value stat-green">Alert Rules</div>
+          <div class="stat-card-label">Alerts</div>
+        </div>
+        </a>
+      </div>
+    </div>
+    <div id="watermark">ThousandEyes Visualizer · Cisco</div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+
+    <!-- Agent Card -->
+    <div>
+      <div class="s-section-title">Endpoint Agent</div>
+      <div class="agent-card">
+        <div class="agent-card-name">DWOELLHA-M-3HQT</div>
+        <div class="agent-card-sub">📍 Stuttgart, Germany 🇩🇪</div>
+      </div>
+    </div>
+
+    <div class="s-divider"></div>
+
+    <!-- Stats -->
+    <div>
+      <div class="s-section-title">Test Summary</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-card-value stat-total">8</div>
+          <div class="stat-card-label">Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-value stat-orange">1</div>
+          <div class="stat-card-label">Agent→Svr</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-value stat-green">6</div>
+          <div class="stat-card-label">Enabled</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-value stat-red">2</div>
+          <div class="stat-card-label">Disabled</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="s-divider"></div>
+
+    <!-- Legend -->
+    <div>
+      <div class="s-section-title">Legend</div>
+
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#049fd9; box-shadow:0 0 6px #049fd9;"></div>
+        <div class="legend-text">
+          <strong>Endpoint Agent</strong>
+          Source of all tests
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#00e5a0; box-shadow:0 0 6px #00e5a0;"></div>
+        <div class="legend-text">
+          <strong>HTTP Server – Enabled</strong>
+          Active monitoring test
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#ff4d6d; box-shadow:0 0 6px #ff4d6d;"></div>
+        <div class="legend-text">
+          <strong>HTTP Server – Disabled</strong>
+          Paused test
+        </div>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#ffaa00; box-shadow:0 0 6px #ffaa00; border-radius:50%;"></div>
+        <div class="legend-text">
+          <strong>Agent-to-Server</strong>
+          Network path test
+        </div>
+      </div>
+    </div>
+
+    <div class="s-divider"></div>
+
+    <!-- Intervals -->
+    <div>
+      <div class="s-section-title">Test Intervals</div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#a78bfa; box-shadow:0 0 6px #a78bfa;"></div>
+        <div class="legend-text"><strong>60s</strong> High-frequency</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#7a9bb5; box-shadow:0 0 4px #7a9bb5;"></div>
+        <div class="legend-text"><strong>300s</strong> Standard</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Live Clock ─────────────────────────────────────────────
+  const clockEl = document.getElementById("clock");
+  function updateClock() {
+    clockEl.textContent = new Date().toLocaleTimeString("de-DE", {
+      hour: "2-digit", minute: "2-digit", second: "2-digit"
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+</script>
+</body>
+</html>

@@ -633,6 +633,7 @@ func main() {
 
 	router.StaticFile("/favicon.ico", "./templates/favicon.ico")
 	router.StaticFile("/js/main_jq.js", "./src/js/main_jq.js")
+	router.StaticFile("/img/teVisLogo.png", "./src/img/teVisLogo.png")
 	//router.StaticFile("/js/app.js", "./src/js/app.js")
 	//router.StaticFile("/js/test_app.jsx", "./src/js/test_app.jsx")
 	router.StaticFile("/css/tevis.css", "./src/css/tevis.css")

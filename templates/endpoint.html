@@ -48,21 +48,191 @@
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <div id="mermaidCard" class="card d-none">
-          <div class="card-body justify-content-center" >
-            <br>
-            <pre id="mermaidBox" class="mermaid"></pre>    
-            <br>      
-          </div>
+        <div id="mermaidCard" class="card">
+          
         </div>
-  	  <script type="module">
-          import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-          window.mermaid = mermaid; 
-          mermaid.initialize({ startOnLoad: false });
-      </script>
+        <div id="network-container" height="100%"></div> 
+      <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     </div>
 	</div>
 </div>
-<div id="root"></div>
+
+<script>
+  // ── Design Tokens ──────────────────────────────────────────
+  const T = {
+    bgNode:      "#0a1220",
+    blue:        "#049fd9",
+    blueGlow:    "#049fd9",
+    green:       "#00e5a0",
+    red:         "#ff4d6d",
+    orange:      "#ffaa00",
+    purple:      "#a78bfa",
+    textPrimary: "#e8f0fe",
+    textSub:     "#7a9bb5",
+  };
+
+  // ── Node Factory ───────────────────────────────────────────
+  function makeNode({ id, label, title, borderColor, glowColor, fontColor = T.textPrimary, bold = false }) {
+    return {
+      id, label, title,
+      shape: "box",
+      borderWidth: 1.5,
+      borderWidthSelected: 2.5,
+      widthConstraint: { maximum: 220 },
+      margin: { top: 12, bottom: 12, left: 14, right: 14 },
+      color: {
+        background: T.bgNode,
+        border:     borderColor,
+        highlight:  { background: "#111d2e", border: glowColor },
+        hover:      { background: "#0f1a2c", border: glowColor }
+      },
+      font: {
+        face:  "Inter, Arial",
+        size:  12,
+        color: fontColor,
+        multi: true
+      },
+      shadow: {
+        enabled: true,
+        color:   glowColor + "55",
+        size:    14,
+        x: 0, y: 0
+      }
+    };
+  }
+
+  // ── Nodes ──────────────────────────────────────────────────
+  const nodes = new vis.DataSet([
+
+    makeNode({
+      id: "A",
+      label: "<b>Endpoint Agent</b>\n─────────────────\nDWOELLHA-M-3HQT\n📍 Stuttgart, Germany",
+      title: "Endpoint Agent\nHost: DWOELLHA-M-3HQT\nLocation: Stuttgart, Germany 🇩🇪",
+      borderColor: T.blue,
+      glowColor:   T.blueGlow,
+      fontColor:   "#00bceb",
+      bold: true
+    }),
+
+    makeNode({
+      id: "T169647",
+      label: "Attendee Dashboard\n<b>http-server</b>  ·  ✅  ·  ⏱ 60s\nreg.rainfocus.com",
+      title: "Test: Attendee Dashboard\nID: T169647\nType: http-server\nTarget: reg.rainfocus.com\nInterval: 60s\nStatus: ✅ Enabled",
+      borderColor: T.green,
+      glowColor:   T.green
+    }),
+
+    makeNode({
+      id: "T113883",
+      label: "CLUSA Speaker Resource Centre\n<b>http-server</b>  ·  ❌  ·  ⏱ 300s\nreg.rainfocus.com",
+      title: "Test: CLUSA Speaker Resource Centre\nID: T113883\nType: http-server\nTarget: reg.rainfocus.com\nInterval: 300s\nStatus: ❌ Disabled",
+      borderColor: T.red,
+      glowColor:   T.red
+    }),
+
+    makeNode({
+      id: "T256824",
+      label: "Microsoft Teams\n<b>http-server</b>  ·  ✅  ·  ⏱ 60s\nteams.microsoft.com",
+      title: "Test: Microsoft Teams\nID: T256824\nType: http-server\nTarget: teams.microsoft.com\nInterval: 60s\nStatus: ✅ Enabled",
+      borderColor: T.green,
+      glowColor:   T.green
+    }),
+
+    makeNode({
+      id: "T197124",
+      label: "Stuttgart – Default Gateway\n<b>agent-to-server</b>  ·  ✅  ·  ⏱ 300s\n10.1.17.1",
+      title: "Test: Stuttgart Default Gateway\nID: T197124\nType: agent-to-server\nTarget: 10.1.17.1\nInterval: 300s\nStatus: ✅ Enabled",
+      borderColor: T.orange,
+      glowColor:   T.orange
+    }),
+
+    makeNode({
+      id: "T347759",
+      label: "Webex\n<b>http-server</b>  ·  ✅  ·  ⏱ 60s\ncisco.webex.com",
+      title: "Test: Webex\nID: T347759\nType: http-server\nTarget: cisco.webex.com\nInterval: 60s\nStatus: ✅ Enabled",
+      borderColor: T.green,
+      glowColor:   T.green
+    }),
+
+    makeNode({
+      id: "T370262",
+      label: "webhook.site\n<b>http-server</b>  ·  ❌  ·  ⏱ 60s\nwebhook.site",
+      title: "Test: webhook.site\nID: T370262\nType: http-server\nTarget: webhook.site\nInterval: 60s\nStatus: ❌ Disabled",
+      borderColor: T.red,
+      glowColor:   T.red
+    }),
+
+    makeNode({
+      id: "T113337",
+      label: "Cisco Live\n<b>http-server</b>  ·  ✅  ·  ⏱ 300s\nwww.ciscolive.com",
+      title: "Test: Cisco Live\nID: T113337\nType: http-server\nTarget: www.ciscolive.com\nInterval: 300s\nStatus: ✅ Enabled",
+      borderColor: T.green,
+      glowColor:   T.green
+    }),
+
+    makeNode({
+      id: "T133395",
+      label: "www.cisco.com\n<b>http-server</b>  ·  ✅  ·  ⏱ 300s\nwww.cisco.com",
+      title: "Test: www.cisco.com\nID: T133395\nType: http-server\nTarget: www.cisco.com\nInterval: 300s\nStatus: ✅ Enabled",
+      borderColor: T.green,
+      glowColor:   T.green
+    })
+  ]);
+
+  // ── Edge Factory ───────────────────────────────────────────
+  function makeEdge(from, to, color, glowColor) {
+    return {
+      from, to,
+      arrows: { to: { enabled: true, scaleFactor: 0.65, type: "arrow" } },
+      color:  { color, highlight: glowColor, hover: glowColor, opacity: 0.75 },
+      width:  1.5,
+      smooth: { type: "cubicBezier", forceDirection: "horizontal", roundness: 0.45 },
+      shadow: { enabled: true, color: glowColor + "40", size: 6, x: 0, y: 0 },
+      selectionWidth: 2.5
+    };
+  }
+
+  const edges = new vis.DataSet([
+    makeEdge("A", "T169647", T.green,  T.green),
+    makeEdge("A", "T113883", T.red,    T.red),
+    makeEdge("A", "T256824", T.green,  T.green),
+    makeEdge("A", "T197124", T.orange, T.orange),
+    makeEdge("A", "T347759", T.green,  T.green),
+    makeEdge("A", "T370262", T.red,    T.red),
+    makeEdge("A", "T113337", T.green,  T.green),
+    makeEdge("A", "T133395", T.green,  T.green),
+  ]);
+
+  // ── Network Options ────────────────────────────────────────
+  const options = {
+    layout: {
+      hierarchical: {
+        direction:       "LR",
+        sortMethod:      "directed",
+        nodeSpacing:     85,
+        levelSeparation: 500,
+        treeSpacing:     100
+      }
+    },
+    physics: { enabled: false },
+    interaction: {
+      hover:             true,
+      tooltipDelay:      60,
+      zoomView:          true,
+      dragView:          true,
+      navigationButtons: true,
+      keyboard:          false
+    },
+    width: '100%',
+    height: '800px',
+    nodes: { chosen: true },
+    edges: { chosen: true }
+  };
+
+  // ── Render ─────────────────────────────────────────────────
+  const container = document.getElementById("network-container");
+  const network   = new vis.Network(container, { nodes, edges }, options);
+
+</script>
 </body>
 {{ template "footer.html" }}
