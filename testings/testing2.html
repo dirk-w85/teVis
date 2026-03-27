@@ -1,4 +1,104 @@
-{{ template "header.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThousandEyes PoV Visualizer</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Vis.js -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+
+    <!-- Modernized Navbar with Menus and Token Input -->
+    <nav class="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-md relative z-20">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+            
+            <!-- Left Section: Brand & Menus -->
+            <div class="flex items-center gap-10">
+                <!-- Brand / Logo -->
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span class="text-xl font-semibold tracking-wide">ThousandEyes PoV Visualizer</span>
+                </div>
+                
+                <!-- Navigation Menus -->
+                <div class="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-300">
+                    <a href="#" class="hover:text-white transition-colors duration-200">Enterprise</a>
+                    <a href="#" class="hover:text-white transition-colors duration-200">Alertts</a>
+                    <a href="#" class="hover:text-white transition-colors duration-200">Endpoints</a>
+                </div>
+            </div>
+            
+            <!-- Right Section: Token Input & Mobile Menu -->
+            <div class="flex items-center gap-4">
+                
+                <!-- Bearer Token Form with Alpine.js -->
+                <form 
+                    x-data="{
+                        token: '',
+                        isLoading: false,
+                        fetchToken() {
+                            this.isLoading = true;
+                            
+                            // Perform the GET request
+                            fetch('http://localhost:8090/api/ping', {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': 'Bearer ' + this.token,
+                                    'Content-Type': 'application/json'
+                                }
+                            })
+                            .then(response => {
+                                console.log('GET /api/token executed. Status:', response.status);
+                                // Handle your response data here
+                                // return response.json(); 
+                            })
+                            .catch(error => {
+                                console.error('Error fetching /api/token:', error);
+                            })
+                            .finally(() => {
+                                this.isLoading = false;
+                            });
+                        }
+                    }"
+                    @submit.prevent="fetchToken"
+                    class="hidden md:flex items-center gap-2"
+                >
+                    <input 
+                        type="password" 
+                        x-model="token"
+                        placeholder="Bearer Token" 
+                        class="bg-slate-800 text-white border border-slate-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 placeholder-slate-400 w-48 xl:w-64 transition-all"
+                        required
+                    >
+                    <button 
+                        type="submit" 
+                        :disabled="isLoading"
+                        :class="isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:bg-blue-500'"
+                        class="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900 w-24 flex justify-center"
+                    >
+                        <span x-show="!isLoading">Submit</span>
+                        <span x-show="isLoading" x-cloak>Loading...</span>
+                    </button>
+                </form>
+
+                <!-- Mobile Menu Button (Hidden on desktop) -->
+                <div class="lg:hidden flex items-center">
+                    <button class="text-slate-300 hover:text-white focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </nav>
 
     <!-- Secondary Action Bar (Light Blue) -->
     <div class="bg-sky-100 border-b border-sky-200 shadow-sm relative z-10">
@@ -55,7 +155,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:p-8">
             <div class="mb-6 border-b border-slate-100 pb-4 flex justify-between items-end">
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-800">Alerts Topology</h2>
+                    <h2 class="text-2xl font-bold text-slate-800">Network Topology</h2>
                     <p class="text-sm text-slate-500 mt-1">Interactive visualization of agents, tests, and targets.</p>
                 </div>
             </div>
