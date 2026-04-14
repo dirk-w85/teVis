@@ -1,3 +1,57 @@
+// Define Nodes
+        const nodes = new vis.DataSet([
+            // Agents
+            { id: 'agent_315431', label: 'Frankfurt, Germany\ncloud', color: '#FF9000', font: {color: '#fff'}, shape: 'ellipse' },
+            { id: 'agent_1332303', label: 'TECOPS-2278-02\n10.1.17.124', color: '#FF9000', font: {color: '#fff'}, shape: 'ellipse' },
+            { id: 'agent_1467088', label: 'R1-ISR1121-X-01\n1.1.1.2', color: '#FF9000', font: {color: '#fff'}, shape: 'ellipse' },
+            { id: 'agent_1606666', label: 'R1-ASR1001-X-01\n10.1.18.41', color: '#FF9000', font: {color: '#fff'}, shape: 'ellipse' },
+            { id: 'agent_1610058', label: 'R1-C9300-24UX-01\n10.1.20.4', color: '#FF9000', font: {color: '#fff'}, shape: 'ellipse' },
+            // Tests
+            { id: 'test_7031323', label: 'MSTeams - DNS - External\nType: dns-trace', color: '#02C8FF' },
+            { id: 'test_7031325', label: 'MSTeams - Video - Internal\nType: agent-to-server', color: '#02C8FF' },
+            { id: 'test_7031313', label: 'MSTeams - DNS - Internal\nType: dns-server', color: '#02C8FF' },
+            { id: 'test_7031316', label: 'MSTeams - External\nType: agent-to-server', color: '#02C8FF' },
+            { id: 'test_7031318', label: 'MSTeams - Internal\nType: agent-to-server', color: '#02C8FF' },
+            { id: 'test_7031317', label: 'MSTeams - Audio - Internal\nType: agent-to-server', color: '#02C8FF' },
+            // Targets
+            { id: 'target_dummy', label: 'Test-Type not supported', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031325', label: 'worldaz.tr.teams.microsoft.com:443', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031313_2221921', label: 'ns1-39.azure-dns.com', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031313_2241766', label: 'ns2-39.azure-dns.net', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031313_2241771', label: 'ns3-39.azure-dns.org', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031313_2245711', label: 'ns4-39.azure-dns.info', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031316', label: 'worldaz.tr.teams.microsoft.com:443', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031318', label: 'worldaz.tr.teams.microsoft.com:443', color: '#0A60FF', font: {color: '#fff'} },
+            { id: 'srv_7031317', label: 'worldaz.tr.teams.microsoft.com:443', color: '#0A60FF', font: {color: '#fff'} }
+        ]);
+
+        // Define Edges
+        const edges = new vis.DataSet([
+            { from: 'agent_315431', to: 'test_7031323' },
+            { from: 'test_7031323', to: 'target_dummy', label: 'unsupported' },
+            { from: 'agent_1332303', to: 'test_7031325' }, { from: 'agent_1467088', to: 'test_7031325' }, { from: 'agent_1606666', to: 'test_7031325' }, { from: 'agent_1610058', to: 'test_7031325' },
+            { from: 'test_7031325', to: 'srv_7031325', label: 'tcp' },
+            { from: 'agent_1332303', to: 'test_7031313' }, { from: 'agent_1606666', to: 'test_7031313' }, { from: 'agent_1610058', to: 'test_7031313' },
+            { from: 'test_7031313', to: 'srv_7031313_2221921', label: 'classic' }, { from: 'test_7031313', to: 'srv_7031313_2241766', label: 'classic' }, { from: 'test_7031313', to: 'srv_7031313_2241771', label: 'classic' }, { from: 'test_7031313', to: 'srv_7031313_2245711', label: 'classic' },
+            { from: 'agent_315431', to: 'test_7031316' }, { from: 'test_7031316', to: 'srv_7031316', label: 'tcp' },
+            { from: 'agent_1332303', to: 'test_7031318' }, { from: 'agent_1467088', to: 'test_7031318' }, { from: 'agent_1606666', to: 'test_7031318' }, { from: 'agent_1610058', to: 'test_7031318' },
+            { from: 'test_7031318', to: 'srv_7031318', label: 'tcp' },
+            { from: 'agent_1332303', to: 'test_7031317' }, { from: 'agent_1467088', to: 'test_7031317' }, { from: 'agent_1606666', to: 'test_7031317' }, { from: 'agent_1610058', to: 'test_7031317' },
+            { from: 'test_7031317', to: 'srv_7031317', label: 'tcp' }
+        ]);
+
+        // Configuration
+        const options = {
+            layout: { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 300 } },
+            nodes: { shape: 'box', margin: 10, font: { face: 'Arial' } },
+            edges: { arrows: 'to', font: { align: 'top' } },
+            physics: false
+        };
+
+
+
+
+
 $(document).ready(function() {
     // Your jQuery code here
 
@@ -26,24 +80,21 @@ $(document).ready(function() {
           });
 
           $('#agForm').removeClass('invisible');  
-          $('#getAG').addClass('d-none');
 
-
-          $.get("/api/labels/"+$("#userInput").val()+"/"+$("#ag option:selected").val(), function(data, status){
+          $.get("/api/labels/"+$("#token").val()+"/"+$("#agFilter option:selected").val(), function(data, status){
             if(status === "success"){
               data = JSON.parse(data)
-              $('#label').empty();
-            
+              $('#labelFilter').empty();
+              
+              console.log(data.tags.length);
               $.each(data.tags, function(index, tag) {
                 if(tag.objectType == "test" && tag.assignments.length > 0 && tag.id.length>10){
                   console.log(tag.tag);
-                  $('#label').append('<option value="' + tag.id + '">' + tag.value +' (Tests: '+tag.assignments.length+')</option>');
+                  $('#labelFilter').append('<option value="' + tag.id + '">' + tag.key +' (Tests: '+tag.assignments.length+')</option>');
                 }
               });
             
-              $('#dropdownLabel').removeClass('d-none');
-              $('#diagramBtn').removeClass('d-none');
-              $('#graphSettings').removeClass('d-none');
+              $('#labelSection').removeClass('invisible');
               $('#tokenBtn').addClass('invisible');
             }else {
               console.error("LABEL GET Failed");
@@ -54,8 +105,6 @@ $(document).ready(function() {
           console.error("AG GET Failed");
         };
       });
-
-
     });
 
     $('#agFilter').on('change', function() {
@@ -65,85 +114,22 @@ $(document).ready(function() {
           data = JSON.parse(data)
           $('#labelFilter').empty();
 
-          $.each(data.tags, function(index, tag) {
-            if(tag.objectType == "test" && tag.assignments.length > 0 && tag.id.length>10){
-              console.log(tag.tag);
-              $('#labelFilter').append('<option value="' + tag.id + '">' + tag.key +' (Tests: '+tag.assignments.length+')</option>');
-            }
-          });
+          console.log(data.tags.length);
+          if(data.tags.length == 0){
+            alert("No Labels found for this Account Group received. Please create a Label first.");
+          }else{
+            $.each(data.tags, function(index, tag) {
+              if(tag.objectType == "test" && tag.assignments.length > 0 && tag.id.length>10){
+                console.log(tag.tag);
+                $('#labelFilter').append('<option value="' + tag.id + '">' + tag.key +' (Tests: '+tag.assignments.length+')</option>');
+              }
+            });
+          }
 
           $('#labelSection').removeClass('invisible');
           $('#diagramBtn').removeClass('d-none');
           $('#graphSettings').removeClass('d-none');
           $('#labelBtn').addClass('d-none');
-        }else {
-          console.error("LABEL GET Failed");
-        };
-      });
-    });
-
-    $('#getAG').click(function(){
-      console.log("Clicked");
-      console.log("token:"+$("#userInput").val())
-
-      $.get("/api/accountgroups/"+$("#userInput").val(), function(data, status){
-        if(status === "success"){
-          data = JSON.parse(data)
-
-          $.each(data.accountGroups, function(index, group) {
-            console.log(group.accountGroupName);
-            $('#ag').append('<option value="' + group.aid + '">' + group.accountGroupName + '</option>');
-          });
-
-          $('#dropdown').removeClass('d-none');    
-          $('#getAG').addClass('d-none');
-
-          $.get("/api/labels/"+$("#userInput").val()+"/"+$("#ag option:selected").val(), function(data, status){
-            if(status === "success"){
-              data = JSON.parse(data)
-              $('#label').empty();
-            
-              $.each(data.tags, function(index, tag) {
-                if(tag.objectType == "test" && tag.assignments.length > 0 && tag.id.length>10){
-                  console.log(tag.tag);
-                  $('#label').append('<option value="' + tag.id + '">' + tag.value +' (Tests: '+tag.assignments.length+')</option>');
-                }
-              });
-            
-              $('#dropdownLabel').removeClass('d-none');
-              $('#diagramBtn').removeClass('d-none');
-              $('#graphSettings').removeClass('d-none');
-              $('#labelBtn').addClass('d-none');
-            }else {
-              console.error("LABEL GET Failed");
-            };
-          });
-
-        }else {
-          console.error("AG GET Failed");
-        };
-      });
-    });
-
-    $('#agBtn').click(function(){
-      console.log("agBtn Clicked");
-
-      $.get("/api/labels/"+$("#token").val()+"/"+$("#agFilter option:selected").val(), function(data, status){
-        if(status === "success"){
-          data = JSON.parse(data)
-          $('#labelFilter').empty();
-
-          $.each(data.tags, function(index, tag) {
-            if(tag.objectType == "test" && tag.assignments.length > 0 && tag.id.length>10){
-              console.log(tag);
-              $('#labelFilter').append('<option value="' + tag.id + '">' + tag.key +' (Tests: '+tag.assignments.length+')</option>');
-            }
-          });
-
-          $('#labelSection').removeClass('invisible');
-          $('#diagramBtn').removeClass('d-none');
-          $('#graphSettings').removeClass('d-none');
-          $('#agBtn').addClass('invisible');
         }else {
           console.error("LABEL GET Failed");
         };
@@ -157,29 +143,14 @@ $(document).ready(function() {
       console.log("Label: "+$("#labelFilter option:selected").val())
 
 
-//      $('#mermaidCard').addClass('d-none');
-//      if($('input[name="radioLook"]:checked').val() == "dark"){
-//        $('#mermaidCard').addClass('tevis-dark');
-//      }else{
-//        $('#mermaidCard').removeClass('tevis-dark');
-//      }
-//
-//      $('#loading-spinner').removeClass('d-none');      
-
       $.get("/api/diagram/"+$("#token").val()+"/"+$("#agFilter option:selected").val()+"/"+$("#labelFilter option:selected").val()+"/"+$('input[name="radioDirection"]:checked').val()+"/"+$('input[name="radioLook"]:checked').val(), function(data, status){
         if(status === "success"){                   
           console.log(data);
+          // Initialize Network
+          const network = new vis.Network(document.getElementById('visGraph'), { nodes, edges }, options);
 
-//          $('#mermaidBox').empty(); // Clear previous diagram
-//          $('#mermaidBox').removeAttr('data-processed');
-//          $('#mermaidBox').append(data);
-
-//          mermaid.run();
-          
-//          $('#loading-spinner').addClass('d-none');
-//          $('#mermaidCard').removeClass('d-none');
-        }else {
-          console.error("LABEL GET Failed");
+        }else{
+          console.error("DIAGRAM GET Failed");
         };
       });
     });
@@ -201,3 +172,5 @@ $(document).ready(function() {
 
     console.log("jQuery is loaded and ready!");
 });
+
+

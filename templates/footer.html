@@ -1,16 +1,35 @@
-<script src="/js/main_jq.js"></script>
-<footer class="text-light py-4 mt-5">
-  <div class="container">
-    <hr class="my-4">
-    <div class="row">
-        <h5>ThousandEyes PoV Visualizer</h5>
-        <p>by Dirk Woellhaf (dwoellha@cisco.com)</p>        
-    </div>    
-    <div class="row">
-      <div class="col-12 text-center">
-        <p class="mb-0">&copy; 2026 Cisco ThousandEyes. All rights reserved.</p><p id="serverVersion"></p>  <p id="apiStatus"></p>      
-      </div>
+    <!-- Modernized Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto">
+        <div class="max-w-[1600px] mx-auto px-6 py-6 text-center">
+            <p class="text-sm text-slate-500">&copy; 2026 Cisco ThousandEyes. All rights reserved.</p>
+        
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+            <!-- Pulsing Dot Wrapper -->
+            <span class="relative flex w-2 h-2">
+                <span class="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping bg-emerald-400"></span>
+                <span class="relative inline-flex w-2 h-2 rounded-full bg-emerald-500"></span>
+            </span>
+            <p id="apiStatus"></p>
+    </span>
     </div>
-  </div>
-</footer>
+    </footer>   
+
+    <!-- Vis.js Logic -->
+    <script type="text/javascript">   
+    // Interactive Graph Settings Logic
+    document.querySelectorAll('input[name="graphDirection"]').forEach((radio) => {
+        radio.addEventListener('change', (e) => {
+            const newDirection = e.target.value;
+            network.setOptions({
+                layout: {
+                    hierarchical: {
+                        direction: newDirection
+                    }
+                }
+            });
+        });
+    });
+    </script>
+    <script src="/js/main_jq.js"></script>
+</body>
 </html>
