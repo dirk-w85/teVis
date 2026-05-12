@@ -215,6 +215,26 @@ type TELabel struct {
 		} `json:"assignments"`
 }
 
+// firstAgentIP picks a stable display address for enterprise agents without indexing empty slices.
+func firstAgentIP(publicIPs, privateIPs []string) string {
+	if len(publicIPs) > 0 {
+		return publicIPs[0]
+	}
+	if len(privateIPs) > 0 {
+		return privateIPs[0]
+	}
+	return "no IP"
+}
+
+// teJSONUnmarshal parses a ThousandEyes JSON body into dest. On failure it logs and returns false.
+func teJSONUnmarshal(context string, body string, dest any) bool {
+	if err := json.Unmarshal([]byte(body), dest); err != nil {
+		slog.Error("ThousandEyes JSON unmarshal failed", "context", context, "err", err, "bodyLen", len(body))
+		return false
+	}
+	return true
+}
+
 func getLabels (teVisSettings TEVisSettings) TELabels {
     slog.Debug("Getting ALL Tags/Labels...")
 	slog.Debug("SETTINGS", "Used AID", teVisSettings.AID)
@@ -228,7 +248,9 @@ func getLabels (teVisSettings TEVisSettings) TELabels {
 	var teLabels TELabels
 	lines := []string{}
 	
-	json.Unmarshal([]byte(response), &teLabels)
+	if !teJSONUnmarshal("getLabels", response, &teLabels) {
+		return teLabels
+	}
 	slog.Debug("TAGS", "Tags received", len(teLabels.Tags))
 	for _, label := range teLabels.Tags {
 		lines = append(lines, label.Value)
@@ -247,7 +269,9 @@ func getAccountGroups (token string) string {
 	response := helper.GETrequest(url,getData)
 	//fmt.Println(response)
 	var teAGs TEAllAccountGroups
-	json.Unmarshal([]byte(response), &teAGs)
+	if !teJSONUnmarshal("getAccountGroups", response, &teAGs) {
+		return response
+	}
 	slog.Debug("getAccountGroups", "Account Groups received", len(teAGs.AccountGroups))
 
 	return response
@@ -263,7 +287,9 @@ func getLabels2 (token string, aid string) string {
 	response := helper.GETrequest(url,getData)
 	//fmt.Println(response)
 	var teLabels TELabels
-	json.Unmarshal([]byte(response), &teLabels)
+	if !teJSONUnmarshal("getLabels2", response, &teLabels) {
+		return response
+	}
 	slog.Debug("getLabels2", "Labels received", len(teLabels.Tags))
 
 	return response
@@ -280,7 +306,9 @@ func getLabelDetails (teVisSettings TEVisSettings) TELabel {
 	fmt.Println(url)
 	response := helper.GETrequest(url,getData)
 	var teLabel TELabel
-	json.Unmarshal([]byte(response), &teLabel)
+	if !teJSONUnmarshal("getLabelDetails", response, &teLabel) {
+		return teLabel
+	}
 
 	slog.Debug("getLabelDetails", "Assignments for Label", len(teLabel.Assignments))
 
@@ -333,7 +361,7 @@ func getDiagram (teVisSettings TEVisSettings) string {
                     }
 
                     if(agent.AgentType == "enterprise"){
-                        mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent",agent.AgentID, agent.AgentName, agent.IPAddresses[0], agent.AgentType )
+                        mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent", agent.AgentID, agent.AgentName, firstAgentIP(agent.PublicIPAddresses, agent.IPAddresses), agent.AgentType)
                     }
                     lines = append(lines, mermaidAgent)
                 }
@@ -395,7 +423,9 @@ func getAllTests(teAGT string, teAID string) TEAllTests{
 	response := helper.GETrequest(url,getData)
     //fmt.Println(response)
     var teAllTests TEAllTests
-    json.Unmarshal([]byte(response), &teAllTests)
+    if !teJSONUnmarshal("getAllTests", response, &teAllTests) {
+		return teAllTests
+	}
 
 
 	slog.Debug("getAllTests", "CEA Tests received", len(teAllTests.Tests))
@@ -417,7 +447,9 @@ func getTest(token string, testID string) TETest{
 	response := helper.GETrequest(url,getData)
     //fmt.Println(response)
     var teTest TETest
-    json.Unmarshal([]byte(response), &teTest)
+    if !teJSONUnmarshal("getTest", response, &teTest) {
+		return teTest
+	}
 
 	slog.Debug("getTest", "CEA Test received", teTest)
 	slog.Debug("getTest", "Received Test Details...")
@@ -435,7 +467,9 @@ func getTestDetails(testURL string, teAGT string) TETestDetail {
 	response := helper.GETrequest(url,getData)
     //fmt.Println(response)
     var teTestDetail TETestDetail
-    json.Unmarshal([]byte(response), &teTestDetail)
+    if !teJSONUnmarshal("getTestDetails", response, &teTestDetail) {
+		return teTestDetail
+	}
 
     return teTestDetail
 }
@@ -488,7 +522,7 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
                         }
 
                         if(agent.AgentType == "enterprise"){
-                            mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent",agent.AgentID, agent.AgentName, agent.IPAddresses[0], agent.AgentType )
+                            mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent", agent.AgentID, agent.AgentName, firstAgentIP(agent.PublicIPAddresses, agent.IPAddresses), agent.AgentType)
                         }
                         lines = append(lines, mermaidAgent)
                     }
