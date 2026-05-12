@@ -47,6 +47,10 @@
 {{.Diagram}}
             </pre>
             <p class="text-muted small mb-1">Interactive graph (same data as Mermaid)</p>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input tevis-vis-dark-toggle" type="checkbox" role="switch" id="vis-dark-{{$currentID}}" data-target="vis-graph-{{$currentID}}" {{ if .DarkMode }}checked{{ end }}>
+              <label class="form-check-label small" for="vis-dark-{{$currentID}}">Dark vis canvas (<code>#07182D</code>)</label>
+            </div>
             <div id="vis-graph-{{$currentID}}" class="rounded border bg-light mb-3" style="height:480px;width:100%;" role="img" aria-label="Topology graph for this label"></div>
             <script type="application/json" class="tevis-vis-json" data-target="vis-graph-{{$currentID}}">{{.VisJSON}}</script>
             <br>      
@@ -100,13 +104,22 @@
 			var targetId = el.getAttribute("data-target");
 			var graphEl = targetId ? document.getElementById(targetId) : null;
 			if (!graphEl || !el.textContent) return;
+			var data;
 			try {
-				var data = JSON.parse(el.textContent);
-				if (typeof tevisTopologyInit === "function") {
-					tevisTopologyInit(targetId, null, data);
-				}
+				data = JSON.parse(el.textContent);
 			} catch (e) {
 				console.error("teVis vis init failed", e);
+				return;
+			}
+			var toggle = document.querySelector('.tevis-vis-dark-toggle[data-target="' + targetId + '"]');
+			function paintVis() {
+				if (typeof tevisTopologyInit !== "function") return;
+				var dark = toggle ? toggle.checked : false;
+				tevisTopologyInit(targetId, { visDarkBackground: dark }, data);
+			}
+			paintVis();
+			if (toggle) {
+				toggle.addEventListener("change", paintVis);
 			}
 		});
 	});

@@ -59,6 +59,12 @@
   const fontStack =
     'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
+  /** Exact dark canvas for vis (product spec). */
+  const TEVIS_VIS_DARK_BG = "#07182D";
+
+  const LIGHT_VIS_CONTAINER_BG =
+    "linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%)";
+
   /**
    * Light-surface nodes with a “shiny” look: brighter fills, thicker rims, and soft colored glows
    * (vis canvas draws solid fills; depth comes from shadow + border, not gradients).
@@ -76,13 +82,13 @@
     groups: {
       agent: {
         shape: "box",
-        borderWidth: 2,
+        borderWidth: 3,
         margin: 16,
         color: {
-          background: "#fffbeb",
-          border: "#d97706",
-          highlight: { background: "#fef3c7", border: "#b45309" },
-          hover: { background: "#fff7ed", border: "#ea580c" },
+          background: "#fffdf7",
+          border: "#f59e0b",
+          highlight: { background: "#fffbeb", border: "#d97706" },
+          hover: { background: "#fffef5", border: "#ea580c" },
         },
         font: {
           color: "#78350f",
@@ -94,22 +100,22 @@
         },
         shadow: {
           enabled: true,
-          color: "rgba(15, 23, 42, 0.08)",
-          size: 10,
-          x: 0,
-          y: 2,
+          color: "rgba(245, 158, 11, 0.35)",
+          size: 22,
+          x: -2,
+          y: 4,
         },
-        shapeProperties: { borderRadius: 8 },
+        shapeProperties: { borderRadius: 10 },
       },
       test: {
         shape: "box",
-        borderWidth: 2,
+        borderWidth: 3,
         margin: 16,
         color: {
-          background: "#f0f9ff",
-          border: "#0284c7",
-          highlight: { background: "#e0f2fe", border: "#0369a1" },
-          hover: { background: "#e0f2fe", border: "#0c4a6e" },
+          background: "#f0fbff",
+          border: "#0ea5e9",
+          highlight: { background: "#e0f7ff", border: "#0284c7" },
+          hover: { background: "#ecfeff", border: "#0369a1" },
         },
         font: {
           color: "#0c4a6e",
@@ -120,22 +126,22 @@
         },
         shadow: {
           enabled: true,
-          color: "rgba(15, 23, 42, 0.08)",
-          size: 10,
-          x: 0,
-          y: 2,
+          color: "rgba(14, 165, 233, 0.32)",
+          size: 22,
+          x: -2,
+          y: 4,
         },
-        shapeProperties: { borderRadius: 8 },
+        shapeProperties: { borderRadius: 10 },
       },
       target: {
         shape: "box",
-        borderWidth: 2,
+        borderWidth: 3,
         margin: 16,
         color: {
-          background: "#f5f3ff",
-          border: "#5b21b6",
-          highlight: { background: "#ede9fe", border: "#4c1d95" },
-          hover: { background: "#ede9fe", border: "#6d28d9" },
+          background: "#faf8ff",
+          border: "#7c3aed",
+          highlight: { background: "#f5f3ff", border: "#5b21b6" },
+          hover: { background: "#f3e8ff", border: "#6d28d9" },
         },
         font: {
           color: "#1e1b4b",
@@ -146,18 +152,18 @@
         },
         shadow: {
           enabled: true,
-          color: "rgba(15, 23, 42, 0.08)",
-          size: 10,
-          x: 0,
-          y: 2,
+          color: "rgba(124, 58, 237, 0.28)",
+          size: 22,
+          x: -2,
+          y: 4,
         },
-        shapeProperties: { borderRadius: 8 },
+        shapeProperties: { borderRadius: 10 },
       },
     },
     nodes: {
       margin: 16,
-      borderWidth: 2,
-      borderWidthSelected: 3,
+      borderWidth: 3,
+      borderWidthSelected: 4,
       widthConstraint: { maximum: 300 },
       labelHighlightBold: false,
       font: {
@@ -170,10 +176,10 @@
       },
       shadow: {
         enabled: true,
-        color: "rgba(15, 23, 42, 0.06)",
-        size: 8,
-        x: 0,
-        y: 2,
+        color: "rgba(15, 23, 42, 0.14)",
+        size: 18,
+        x: -1,
+        y: 3,
       },
     },
     edges: {
@@ -210,6 +216,123 @@
     },
   };
 
+  function cloneTopologyOptions() {
+    return JSON.parse(JSON.stringify(defaultOptions));
+  }
+
+  function mergeGroup(base, patch) {
+    const g = Object.assign({}, base);
+    if (patch.color) {
+      g.color = Object.assign({}, base.color, patch.color);
+      if (patch.color.highlight) {
+        g.color.highlight = Object.assign({}, base.color.highlight, patch.color.highlight);
+      }
+      if (patch.color.hover) {
+        g.color.hover = Object.assign({}, base.color.hover, patch.color.hover);
+      }
+    }
+    if (patch.font) {
+      g.font = Object.assign({}, base.font, patch.font);
+    }
+    if (patch.shadow) {
+      g.shadow = Object.assign({}, base.shadow, patch.shadow);
+    }
+    if (patch.borderWidth != null) {
+      g.borderWidth = patch.borderWidth;
+    }
+    if (patch.shapeProperties) {
+      g.shapeProperties = Object.assign({}, base.shapeProperties, patch.shapeProperties);
+    }
+    return g;
+  }
+
+  /** Node/edge colors tuned for canvas background {@link TEVIS_VIS_DARK_BG}. */
+  function applyDarkVisTheme(options) {
+    const darkGroup = {
+      agent: {
+        color: {
+          background: "#0f3557",
+          border: "#fbbf24",
+          highlight: { background: "#134a78", border: "#fcd34d" },
+          hover: { background: "#164e7a", border: "#fde68a" },
+        },
+        font: { color: "#fef3c7" },
+        shadow: {
+          enabled: true,
+          color: "rgba(251, 191, 36, 0.35)",
+          size: 22,
+          x: -2,
+          y: 4,
+        },
+      },
+      test: {
+        color: {
+          background: "#0c3550",
+          border: "#38bdf8",
+          highlight: { background: "#0e4a6e", border: "#7dd3fc" },
+          hover: { background: "#0f5680", border: "#bae6fd" },
+        },
+        font: { color: "#e0f2fe" },
+        shadow: {
+          enabled: true,
+          color: "rgba(56, 189, 248, 0.35)",
+          size: 22,
+          x: -2,
+          y: 4,
+        },
+      },
+      target: {
+        color: {
+          background: "#1a2040",
+          border: "#a78bfa",
+          highlight: { background: "#252a55", border: "#c4b5fd" },
+          hover: { background: "#2e3568", border: "#ddd6fe" },
+        },
+        font: { color: "#ede9fe" },
+        shadow: {
+          enabled: true,
+          color: "rgba(167, 139, 250, 0.32)",
+          size: 22,
+          x: -2,
+          y: 4,
+        },
+      },
+    };
+    options.groups.agent = mergeGroup(options.groups.agent, darkGroup.agent);
+    options.groups.test = mergeGroup(options.groups.test, darkGroup.test);
+    options.groups.target = mergeGroup(options.groups.target, darkGroup.target);
+    options.nodes.font = Object.assign({}, options.nodes.font, { color: "#e2e8f0" });
+    options.nodes.shadow = Object.assign({}, options.nodes.shadow, {
+      color: "rgba(0, 0, 0, 0.45)",
+      size: 20,
+      x: -1,
+      y: 3,
+    });
+    options.edges.color = Object.assign({}, options.edges.color, {
+      color: "#5c6b82",
+      highlight: "#38bdf8",
+      hover: "#94a3b8",
+      inherit: false,
+    });
+    options.edges.font = Object.assign({}, options.edges.font, { color: "#cbd5e1" });
+    return options;
+  }
+
+  /**
+   * @param {object|null} userOpts - may include `visDarkBackground` (stripped before passing to vis)
+   */
+  function buildNetworkOptions(userOpts) {
+    const opts = userOpts || {};
+    const dark = !!opts.visDarkBackground;
+    const stripped = Object.assign({}, opts);
+    delete stripped.visDarkBackground;
+    let options = Object.assign(cloneTopologyOptions(), stripped);
+    if (dark) {
+      applyDarkVisTheme(options);
+    }
+    return options;
+  }
+
   function normalizeGraph(data) {
     if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
       return { nodes: STATIC_NODES, edges: STATIC_EDGES };
@@ -245,7 +368,7 @@
 
   /**
    * @param {string} containerId - element id for the graph
-   * @param {object|null} [opts] - optional vis.Network options overrides
+   * @param {object|null} [opts] - vis overrides; set `visDarkBackground: true` for canvas {@link TEVIS_VIS_DARK_BG}
    * @param {{nodes: object[], edges: object[]}|null} [data] - from Go createDiagrams JSON; omit to use built-in sample
    * @returns {vis.Network|null}
    */
@@ -260,15 +383,23 @@
       return null;
     }
 
-    el.style.background = "#f1f5f9";
+    const darkBg = !!(opts && opts.visDarkBackground);
+    el.style.setProperty("background", darkBg ? TEVIS_VIS_DARK_BG : LIGHT_VIS_CONTAINER_BG, "important");
+    el.style.setProperty("border", darkBg ? "1px solid #143d5e" : "1px solid #e2e8f0", "important");
     el.style.borderRadius = "10px";
+
+    if (el._tevisVisNetwork) {
+      el._tevisVisNetwork.destroy();
+      el._tevisVisNetwork = null;
+    }
 
     const g = enrichNodesForReadability(normalizeGraph(data));
     const nodes = new vis.DataSet(g.nodes);
     const edges = new vis.DataSet(g.edges);
-    const options = opts ? Object.assign({}, defaultOptions, opts) : defaultOptions;
+    const options = buildNetworkOptions(opts);
 
     const network = new vis.Network(el, { nodes, edges }, options);
+    el._tevisVisNetwork = network;
     requestAnimationFrame(function () {
       network.fit({ padding: 48, animation: { duration: 250, easingFunction: "easeInOutQuad" } });
     });
@@ -276,9 +407,11 @@
   }
 
   window.tevisTopologyInit = initTevisTopology;
+  window.TEVIS_VIS_DARK_BG = TEVIS_VIS_DARK_BG;
   window.tevisTopologyStatic = {
     nodes: STATIC_NODES,
     edges: STATIC_EDGES,
     init: initTevisTopology,
+    darkBg: TEVIS_VIS_DARK_BG,
   };
 })();

@@ -814,6 +814,7 @@ func main() {
 		}
 		baseH["ShowTagPicker"] = true
 		baseH["ShowGraph"] = true
+		baseH["VisDarkDefault"] = s.GraphLook == "dark"
 		baseH["MergedVis"] = template.JS(raw)
 		c.HTML(http.StatusOK, "topology.html", baseH)
 	})
