@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <style>
+        #visGraph { width: 100%; min-height: 70vh; height: calc(100vh - 14rem); border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+    <nav class="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-md">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span class="text-xl font-semibold tracking-wide">Topology (sample)</span>
+            </div>
+            <div class="flex items-center gap-4 text-sm font-medium text-slate-300">
+                <a href="/" class="hover:text-white transition-colors">Home</a>
+                <a href="/tests" class="hover:text-white transition-colors">Enterprise</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6">
+        <div class="mb-4">
+            <h1 class="text-2xl font-bold text-slate-800">Agent → test → target</h1>
+            <p class="text-sm text-slate-600 mt-1">Static sample data for layout and styling. Live ThousandEyes data will replace this in a later step.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-4 mb-4 text-sm">
+            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+                <span class="h-3 w-3 rounded-full bg-[#FF9000]" aria-hidden="true"></span> Agents
+            </span>
+            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+                <span class="h-3 w-3 rounded-full bg-[#02C8FF]" aria-hidden="true"></span> Tests
+            </span>
+            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+                <span class="h-3 w-3 rounded-full bg-[#0A60FF]" aria-hidden="true"></span> Targets
+            </span>
+        </div>
+
+        <div id="visGraph" role="img" aria-label="Network topology graph sample"></div>
+    </main>
+
+    <footer class="text-center py-4 text-slate-500 text-sm border-t border-slate-200 bg-white">
+        Sample topology · vis-network
+    </footer>
+
+    <script src="/js/tevis-topology-static.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof tevisTopologyInit === "function") {
+                tevisTopologyInit("visGraph");
+            }
+        });
+    </script>
+</body>
+</html>

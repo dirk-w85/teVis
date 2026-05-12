@@ -7,6 +7,7 @@ import (
     "net/http"
 	"github.com/dirk-w85/golang-helper"
 	"encoding/json"
+	"sort"
 	"strings"
 	"os"
 	"github.com/gin-gonic/gin"
@@ -78,12 +79,33 @@ type TETestDetail struct {
 	} `json:"_links"`
 }
 
+// VisNode / VisEdge are serialized for vis-network (same graph as Mermaid in createDiagrams).
+type VisNode struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Group string `json:"group"`
+}
+
+type VisEdge struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Label string `json:"label,omitempty"`
+}
+
+type VisGraph struct {
+	Nodes []VisNode `json:"nodes"`
+	Edges []VisEdge `json:"edges"`
+}
+
+type LabelDiagram struct {
+	LabelID  string
+	Diagram  string
+	DarkMode bool
+	VisJSON  template.JS
+}
+
 type ALLDiagrams struct {
-    Tags []struct {
-        LabelID     string
-        Diagram     string
-        DarkMode    bool
-    }
+	Tags []LabelDiagram
 }
 
 type TEAllAccountGroups struct {
@@ -94,47 +116,7 @@ type TEAllAccountGroups struct {
 }
 
 type TEAllTests struct {
-	Tests []struct {
-		Interval              int       `json:"interval"`
-		TestID                string    `json:"testId"`
-		BgpMeasurements       bool      `json:"bgpMeasurements"`
-		UsePublicBgp          bool      `json:"usePublicBgp"`
-		Description           string    `json:"description"`
-		LiveShare             bool      `json:"liveShare"`
-		TestName              string    `json:"testName"`
-		CreatedBy             string    `json:"createdBy"`
-		ModifiedBy            string    `json:"modifiedBy"`
-		SavedEvent            bool      `json:"savedEvent"`
-		Type                  string    `json:"type"`
-		AlertsEnabled         bool      `json:"alertsEnabled"`
-		Enabled               bool      `json:"enabled"`
-		BandwidthMeasurements bool      `json:"bandwidthMeasurements"`
-		ContinuousMode        bool      `json:"continuousMode"`
-		DscpID                string    `json:"dscpId"`
-		Ipv6Policy            string    `json:"ipv6Policy"`
-		MtuMeasurements       bool      `json:"mtuMeasurements"`
-		NumPathTraces         int       `json:"numPathTraces"`
-		PathTraceMode         string    `json:"pathTraceMode"`
-		ProbeMode             string    `json:"probeMode"`
-		NetworkMeasurements   bool      `json:"networkMeasurements"`
-		Protocol              string    `json:"protocol"`
-		RandomizedStartTime   bool      `json:"randomizedStartTime"`
-		Server                string    `json:"server"`
-		Dscp                  string    `json:"dscp"`
-		URL                  string    `json:"url"`
-		DNSServers		[]struct {
-			ServerID		  string 	`json:"serverid"`
-			ServerName		  string 	`json:"serverName"`
-		} `json:"dnsServers"`
-		Links                 struct {
-			Self struct {
-				Href string `json:"href"`
-			} `json:"self"`
-			TestResults []struct {
-				Href string `json:"href"`
-			} `json:"testResults"`
-		} `json:"_links"`
-	} `json:"tests"`
+	Tests []TETest `json:"tests"`
 }
 
 type TETest struct {
@@ -313,6 +295,106 @@ func getLabelDetails (teVisSettings TEVisSettings) TELabel {
 	slog.Debug("getLabelDetails", "Assignments for Label", len(teLabel.Assignments))
 
 	return teLabel
+}
+
+func graphFromNodeMap(nodes map[string]VisNode, edges []VisEdge) VisGraph {
+	ids := make([]string, 0, len(nodes))
+	for id := range nodes {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	out := make([]VisNode, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, nodes[id])
+	}
+	return VisGraph{Nodes: out, Edges: edges}
+}
+
+func mergeVisGraphs(graphs []VisGraph) VisGraph {
+	nodes := make(map[string]VisNode)
+	var edges []VisEdge
+	for _, g := range graphs {
+		for _, n := range g.Nodes {
+			nodes[n.ID] = n
+		}
+		edges = append(edges, g.Edges...)
+	}
+	return graphFromNodeMap(nodes, edges)
+}
+
+// addMermaidAndVisForTest appends Mermaid lines and vis nodes/edges for one test (same logic as historical createDiagrams / getDiagram).
+func addMermaidAndVisForTest(lines *[]string, nodes map[string]VisNode, edges *[]VisEdge, test TETest, detail TETestDetail, boldTestTitle bool) {
+	tid := test.TestID
+	testNodeID := "test_" + tid
+	var testMermaid string
+	if boldTestTitle {
+		testMermaid = fmt.Sprintf("test_%s[\"**%s**<br>*Type: %s<br>Interval: %ds*\"]:::teTest", tid, test.TestName, test.Type, test.Interval)
+	} else {
+		testMermaid = fmt.Sprintf("test_%s[\"%s<br>*Type: %s<br>Interval: %ds*\"]:::teTest", tid, test.TestName, test.Type, test.Interval)
+	}
+	*lines = append(*lines, testMermaid)
+	nodes[testNodeID] = VisNode{
+		ID:    testNodeID,
+		Label: fmt.Sprintf("%s\nType: %s\nInterval: %ds", test.TestName, test.Type, test.Interval),
+		Group: "test",
+	}
+
+	for _, agent := range detail.Agents {
+		aid := "agent_" + agent.AgentID
+		if agent.AgentType == "cloud" {
+			*lines = append(*lines, fmt.Sprintf("agent_%s([\"%s<br>*%s*\"]):::teAgent", agent.AgentID, agent.AgentName, agent.AgentType))
+			nodes[aid] = VisNode{ID: aid, Label: fmt.Sprintf("%s\n(%s)", agent.AgentName, agent.AgentType), Group: "agent"}
+		}
+		if agent.AgentType == "enterprise" {
+			ip := firstAgentIP(agent.PublicIPAddresses, agent.IPAddresses)
+			*lines = append(*lines, fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent", agent.AgentID, agent.AgentName, ip, agent.AgentType))
+			nodes[aid] = VisNode{ID: aid, Label: fmt.Sprintf("%s\n%s\n(%s)", agent.AgentName, ip, agent.AgentType), Group: "agent"}
+		}
+	}
+	for _, agent := range detail.Agents {
+		*edges = append(*edges, VisEdge{From: "agent_" + agent.AgentID, To: testNodeID})
+	}
+
+	mermaidTestTarget := "test_" + tid + " -- unsupported --> target_dummy>Test-Type not yet supported in teVis]:::teTarget"
+	needsUnsupportedVis := true
+
+	if test.Type == "agent-to-server" {
+		mermaidTestTarget = fmt.Sprintf("test_%s -- %s --> srv_%s[\"%s\"]:::teTarget", tid, test.Protocol, tid, test.Server)
+		sid := "srv_" + tid
+		nodes[sid] = VisNode{ID: sid, Label: test.Server, Group: "target"}
+		*edges = append(*edges, VisEdge{From: testNodeID, To: sid, Label: test.Protocol})
+		needsUnsupportedVis = false
+	}
+	if test.Type == "http-server" {
+		mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", tid, test.Protocol, test.PathTraceMode, tid, test.URL)
+		sid := "srv_" + tid
+		nodes[sid] = VisNode{ID: sid, Label: test.URL, Group: "target"}
+		*edges = append(*edges, VisEdge{From: testNodeID, To: sid, Label: test.Protocol})
+		needsUnsupportedVis = false
+	}
+	if test.Type == "page-load" {
+		mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", tid, test.Protocol, test.PathTraceMode, tid, test.URL)
+		sid := "srv_" + tid
+		nodes[sid] = VisNode{ID: sid, Label: test.URL, Group: "target"}
+		*edges = append(*edges, VisEdge{From: testNodeID, To: sid, Label: test.Protocol})
+		needsUnsupportedVis = false
+	}
+	if test.Type == "dns-server" {
+		needsUnsupportedVis = false
+		for _, dnsServer := range test.DNSServers {
+			line := fmt.Sprintf("test_%s -- Trace: %s --> srv_%s_%s[\"<p>%s</p>\"]:::teTarget", tid, test.PathTraceMode, tid, dnsServer.ServerID, dnsServer.ServerName)
+			*lines = append(*lines, line)
+			sid := fmt.Sprintf("srv_%s_%s", tid, dnsServer.ServerID)
+			nodes[sid] = VisNode{ID: sid, Label: dnsServer.ServerName, Group: "target"}
+			*edges = append(*edges, VisEdge{From: testNodeID, To: sid, Label: "dns"})
+		}
+		mermaidTestTarget = ""
+	}
+	if needsUnsupportedVis {
+		nodes["target_dummy"] = VisNode{ID: "target_dummy", Label: "Test type not yet supported in teVis", Group: "target"}
+		*edges = append(*edges, VisEdge{From: testNodeID, To: "target_dummy", Label: "unsupported"})
+	}
+	*lines = append(*lines, mermaidTestTarget)
 }
 
 func getDiagram (teVisSettings TEVisSettings) string {
@@ -671,6 +753,7 @@ func main() {
 	//router.StaticFile("/js/app.js", "./src/js/app.js")
 	//router.StaticFile("/js/test_app.jsx", "./src/js/test_app.jsx")
 	router.StaticFile("/css/tevis.css", "./src/css/tevis.css")
+	router.StaticFile("/js/tevis-topology-static.js", "./src/js/tevis-topology-static.js")
 	router.StaticFile("/testpage", "./templates/test_page.html")
 
 	// GIN - Templates
@@ -723,6 +806,12 @@ func main() {
             "topic": "Cloud & Enterprise",
         })
     })
+
+	router.GET("/topology", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "topology.html", gin.H{
+			"title": "Topology (sample) · teVis",
+		})
+	})
 
 	router.GET("/endpoint", func(c *gin.Context) {
         c.HTML(http.StatusOK, "endpoint.html", gin.H{
