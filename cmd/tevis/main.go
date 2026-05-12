@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const baseVersion = "v0.3.1."
+const baseVersion = "v0.4.1."
 var curVersion string
 var curBuild string
 
