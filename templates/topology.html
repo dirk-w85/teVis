@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
     <style>
-        #visGraph { width: 100%; min-height: 70vh; height: calc(100vh - 14rem); border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #f8fafc; }
+        #visGraph { width: 100%; min-height: 50vh; height: calc(100vh - 22rem); border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #f8fafc; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
@@ -15,45 +15,110 @@
         <div class="max-w-[1600px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <svg class="w-6 h-6 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                <span class="text-xl font-semibold tracking-wide">Topology (sample)</span>
+                <span class="text-xl font-semibold tracking-wide">Topology</span>
             </div>
             <div class="flex items-center gap-4 text-sm font-medium text-slate-300">
                 <a href="/" class="hover:text-white transition-colors">Home</a>
+                <a href="/form" class="hover:text-white transition-colors">Diagram form</a>
                 <a href="/tests" class="hover:text-white transition-colors">Enterprise</a>
             </div>
         </div>
     </nav>
 
     <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6">
-        <div class="mb-4">
-            <h1 class="text-2xl font-bold text-slate-800">Agent → test → target</h1>
-            <p class="text-sm text-slate-600 mt-1">Static sample data for layout and styling. Live ThousandEyes data will replace this in a later step.</p>
+        {{ if .Error }}
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert">{{ .Error }}</div>
+        {{ end }}
+
+        {{ if .CredentialStep }}
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Topology (vis.js)</h1>
+        <p class="text-sm text-slate-600 mb-6">Sign in with your ThousandEyes API token. Account group (aid) is resolved automatically when omitted. Next you will pick a <strong>tag</strong> to draw agents, tests, and targets for tests assigned to that tag.</p>
+        <form method="post" action="/topology" class="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1" for="userInput">Bearer token</label>
+                <input class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" type="password" id="userInput" name="userInput" required autocomplete="off" placeholder="OAuth / API token">
+            </div>
+            <details class="text-sm text-slate-600">
+                <summary class="cursor-pointer font-medium text-slate-800">Advanced: account group (aid)</summary>
+                <p class="mt-2 text-slate-500">Leave empty to auto-pick the first account group by name.</p>
+                <label class="mt-2 block text-sm font-medium text-slate-700 mb-1" for="ag">aid</label>
+                <input class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" type="text" id="ag" name="ag" value="" placeholder="optional">
+            </details>
+            <fieldset class="space-y-2">
+                <legend class="text-sm font-medium text-slate-700">Graph direction</legend>
+                <label class="flex items-center gap-2 text-sm"><input type="radio" name="radioDirection" value="LR" checked> Left to right</label>
+                <label class="flex items-center gap-2 text-sm"><input type="radio" name="radioDirection" value="TD"> Top down</label>
+            </fieldset>
+            <fieldset class="space-y-2">
+                <legend class="text-sm font-medium text-slate-700">Theme (Mermaid config)</legend>
+                <label class="flex items-center gap-2 text-sm"><input type="radio" name="radioDefault" value="classic"> Classic</label>
+                <label class="flex items-center gap-2 text-sm"><input type="radio" name="radioDefault" value="dark" checked> Dark</label>
+            </fieldset>
+            <input type="hidden" name="radioBrandColors" value="thousandeyes">
+            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Continue — load tags</button>
+        </form>
+
+        {{ else if .ShowTagPicker }}
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Choose a tag</h1>
+                <p class="text-sm text-slate-600 mt-1">Account group <code class="text-xs bg-slate-200 px-1 rounded">{{ .UserAID }}</code> · Tags from ThousandEyes with test assignments.</p>
+            </div>
+            <a href="/topology" class="text-sm text-blue-600 hover:underline shrink-0">New session</a>
         </div>
 
-        <div class="flex flex-wrap gap-4 mb-4 text-sm">
-            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-                <span class="h-3 w-3 rounded-full bg-[#FF9000]" aria-hidden="true"></span> Agents
-            </span>
-            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-                <span class="h-3 w-3 rounded-full bg-[#02C8FF]" aria-hidden="true"></span> Tests
-            </span>
-            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-                <span class="h-3 w-3 rounded-full bg-[#0A60FF]" aria-hidden="true"></span> Targets
-            </span>
-        </div>
+        <form method="post" action="/topology" class="max-w-3xl space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
+            <input type="hidden" name="userInput" value="{{ .Token }}">
+            <input type="hidden" name="ag" value="{{ .UserAID }}">
+            <input type="hidden" name="radioDirection" value="{{ .GraphDir }}">
+            <input type="hidden" name="radioDefault" value="{{ .GraphLook }}">
+            <input type="hidden" name="radioBrandColors" value="{{ .GraphBrand }}">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2" for="labelId">Tag (label)</label>
+                <select id="labelId" name="labelId" required class="w-full max-w-xl rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
+                    <option value="" disabled {{ if eq .SelectedLabelID "" }}selected{{ end }}>— Select a tag —</option>
+                    {{ $sel := .SelectedLabelID }}
+                    {{ range .Tags }}
+                    <option value="{{ .LabelID }}" {{ if eq $sel .LabelID }}selected{{ end }}>{{ .Value }} ({{ .Key }}) — {{ .ObjectType }}</option>
+                    {{ end }}
+                </select>
+            </div>
+            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Render graph for this tag</button>
+        </form>
 
-        <div id="visGraph" role="img" aria-label="Network topology graph sample"></div>
+        {{ if .ShowGraph }}
+        <div class="mb-3">
+            <h2 class="text-lg font-semibold text-slate-800">Graph for selected tag</h2>
+            <p class="text-sm text-slate-500">Agents → tests → targets for tests assigned to the tag (same rules as <code class="text-xs bg-slate-200 px-1 rounded">createDiagrams</code>).</p>
+        </div>
+        <div class="flex flex-wrap gap-3 mb-3 text-sm">
+            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm"><span class="h-3 w-3 rounded-full bg-[#FF9000]" aria-hidden="true"></span> Agents</span>
+            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm"><span class="h-3 w-3 rounded-full bg-[#02C8FF]" aria-hidden="true"></span> Tests</span>
+            <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm"><span class="h-3 w-3 rounded-full bg-[#0A60FF]" aria-hidden="true"></span> Targets</span>
+        </div>
+        <div id="visGraph" role="img" aria-label="Topology for one tag"></div>
+        <script type="application/json" id="tevis-topology-merged">{{ .MergedVis }}</script>
+        {{ end }}
+
+        {{ end }}
     </main>
 
     <footer class="text-center py-4 text-slate-500 text-sm border-t border-slate-200 bg-white">
-        Sample topology · vis-network
+        teVis · vis-network
     </footer>
 
     <script src="/js/tevis-topology-static.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            if (typeof tevisTopologyInit === "function") {
-                tevisTopologyInit("visGraph");
+            var blob = document.getElementById("tevis-topology-merged");
+            if (!blob || !blob.textContent) return;
+            try {
+                var data = JSON.parse(blob.textContent);
+                if (typeof tevisTopologyInit === "function") {
+                    tevisTopologyInit("visGraph", null, data);
+                }
+            } catch (e) {
+                console.error(e);
             }
         });
     </script>

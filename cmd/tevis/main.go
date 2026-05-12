@@ -1,15 +1,16 @@
 package main
 
 import (
+    "errors"
     "fmt"
     "html/template"    
 	"log/slog"
+	"os"
     "net/http"
 	"github.com/dirk-w85/golang-helper"
 	"encoding/json"
 	"sort"
 	"strings"
-	"os"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,7 +24,6 @@ type TEVisSettings struct {
 	Token		string
 	AID			string
 	Label		string
-	Loglevel	string
 	GraphLook	string
 	GraphBrand	string
 	GraphDirection	string
@@ -108,11 +108,25 @@ type ALLDiagrams struct {
 	Tags []LabelDiagram
 }
 
+// TopologyTagOption is one ThousandEyes tag/label for the topology tag dropdown.
+type TopologyTagOption struct {
+	LabelID    string
+	Value      string
+	Key        string
+	ObjectType string
+}
+
 type TEAllAccountGroups struct {
 	AccountGroups []struct {
 		AccountGroupName      string `json:"accountGroupName"`
 		Aid                   string `json:"aid"`
 	} `json:"accountGroups"`
+}
+
+// TEAPIError is returned by ThousandEyes on failed requests (non-list payloads).
+type TEAPIError struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
 }
 
 type TEAllTests struct {
@@ -228,35 +242,78 @@ func getLabels (teVisSettings TEVisSettings) TELabels {
 	response := helper.GETrequest(url,getData)
 	//fmt.Println(response)
 	var teLabels TELabels
-	lines := []string{}
-	
 	if !teJSONUnmarshal("getLabels", response, &teLabels) {
 		return teLabels
 	}
 	slog.Debug("TAGS", "Tags received", len(teLabels.Tags))
-	for _, label := range teLabels.Tags {
-		lines = append(lines, label.Value)
-	}
-	//return lines
 	return teLabels
 }
 
-func getAccountGroups (token string) string {
-    slog.Debug("getAccountGroups", "Getting ALL Account-Groups...")
-	getData := map[string]string{
-		"Token": token,
-	}
-	// Getting TE Labels 
-	url := fmt.Sprintf("https://api.thousandeyes.com/v7/account-groups")
-	response := helper.GETrequest(url,getData)
-	//fmt.Println(response)
-	var teAGs TEAllAccountGroups
-	if !teJSONUnmarshal("getAccountGroups", response, &teAGs) {
-		return response
-	}
-	slog.Debug("getAccountGroups", "Account Groups received", len(teAGs.AccountGroups))
+func getAccountGroups(token string) string {
+	slog.Debug("getAccountGroups", "Getting ALL Account-Groups...")
+	getData := map[string]string{"Token": token}
+	url := "https://api.thousandeyes.com/v7/account-groups"
+	return helper.GETrequest(url, getData)
+}
 
-	return response
+// fetchAccountGroups loads account groups for a token and parses the JSON body.
+func fetchAccountGroups(token string) (TEAllAccountGroups, error) {
+	var empty TEAllAccountGroups
+	slog.Debug("fetchAccountGroups", "request")
+	getData := map[string]string{"Token": token}
+	url := "https://api.thousandeyes.com/v7/account-groups"
+	body := helper.GETrequest(url, getData)
+	var apiErr TEAPIError
+	if err := json.Unmarshal([]byte(body), &apiErr); err == nil && apiErr.Error != "" {
+		desc := apiErr.ErrorDescription
+		if desc == "" {
+			desc = apiErr.Error
+		}
+		return empty, errors.New(desc)
+	}
+	var out TEAllAccountGroups
+	if !teJSONUnmarshal("fetchAccountGroups", body, &out) {
+		return empty, errors.New("invalid account-groups response from ThousandEyes")
+	}
+	return out, nil
+}
+
+// lookupDefaultAID returns an account group AID for API calls when the user did not pick one.
+// If several groups exist, the first after sorting by name is used (deterministic).
+func lookupDefaultAID(token string) (aid string, accountGroupName string, err error) {
+	ags, err := fetchAccountGroups(token)
+	if err != nil {
+		return "", "", err
+	}
+	if len(ags.AccountGroups) == 0 {
+		return "", "", errors.New("no account groups returned for this token")
+	}
+	sort.Slice(ags.AccountGroups, func(i, j int) bool {
+		return strings.ToLower(ags.AccountGroups[i].AccountGroupName) < strings.ToLower(ags.AccountGroups[j].AccountGroupName)
+	})
+	g := ags.AccountGroups[0]
+	if len(ags.AccountGroups) > 1 {
+		slog.Info("lookupDefaultAID: multiple account groups; using first by name",
+			"chosenAid", g.Aid, "chosenName", g.AccountGroupName, "total", len(ags.AccountGroups))
+	}
+	return g.Aid, g.AccountGroupName, nil
+}
+
+// ensureAID sets settings.AID from the token when the form did not send an account group.
+func ensureAID(s *TEVisSettings) error {
+	if strings.TrimSpace(s.AID) != "" {
+		return nil
+	}
+	if strings.TrimSpace(s.Token) == "" {
+		return errors.New("bearer token is required")
+	}
+	aid, name, err := lookupDefaultAID(s.Token)
+	if err != nil {
+		return err
+	}
+	s.AID = aid
+	slog.Debug("ensureAID", "resolved", "aid", aid, "accountGroupName", name)
+	return nil
 }
 
 func getLabels2 (token string, aid string) string {
@@ -285,7 +342,6 @@ func getLabelDetails (teVisSettings TEVisSettings) TELabel {
 	}
 	 
 	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tags/"+teVisSettings.Label+"?expand=assignments&aid="+teVisSettings.AID)
-	fmt.Println(url)
 	response := helper.GETrequest(url,getData)
 	var teLabel TELabel
 	if !teJSONUnmarshal("getLabelDetails", response, &teLabel) {
@@ -310,16 +366,44 @@ func graphFromNodeMap(nodes map[string]VisNode, edges []VisEdge) VisGraph {
 	return VisGraph{Nodes: out, Edges: edges}
 }
 
-func mergeVisGraphs(graphs []VisGraph) VisGraph {
-	nodes := make(map[string]VisNode)
-	var edges []VisEdge
-	for _, g := range graphs {
-		for _, n := range g.Nodes {
-			nodes[n.ID] = n
+// topologySelectableTags returns tags that carry test assignments (same filter as the results page).
+func topologySelectableTags(teLabels TELabels) []TopologyTagOption {
+	var out []TopologyTagOption
+	for _, t := range teLabels.Tags {
+		if (t.ObjectType != "test" && t.ObjectType != "endpoint-test") || len(t.Assignments) == 0 {
+			continue
 		}
-		edges = append(edges, g.Edges...)
+		out = append(out, TopologyTagOption{
+			LabelID:    t.ID,
+			Value:      t.Value,
+			Key:        t.Key,
+			ObjectType: t.ObjectType,
+		})
 	}
-	return graphFromNodeMap(nodes, edges)
+	return out
+}
+
+// visGraphForTag builds agents → tests → targets for tests assigned to a single tag (label id).
+func visGraphForTag(teLabels TELabels, teAllTests TEAllTests, token string, labelID string) (VisGraph, error) {
+	for _, label := range teLabels.Tags {
+		if label.ID != labelID {
+			continue
+		}
+		nodes := make(map[string]VisNode)
+		var edges []VisEdge
+		var scrap []string
+		for _, assignedTest := range label.Assignments {
+			for _, test := range teAllTests.Tests {
+				if test.TestID != assignedTest.ID {
+					continue
+				}
+				detail := getTestDetails(test.Links.Self.Href, token)
+				addMermaidAndVisForTest(&scrap, nodes, &edges, test, detail, true)
+			}
+		}
+		return graphFromNodeMap(nodes, edges), nil
+	}
+	return VisGraph{}, errors.New("tag not found")
 }
 
 // addMermaidAndVisForTest appends Mermaid lines and vis nodes/edges for one test (same logic as historical createDiagrams / getDiagram).
@@ -401,96 +485,44 @@ func getDiagram (teVisSettings TEVisSettings) string {
     slog.Debug("getDiagram", "Getting Diagram for Label...", teVisSettings.Label)
 	slog.Debug("getDiagram", "Creating Diagrams...")
 
-	// Getting TE Label Details
 	teLabel := getLabelDetails(teVisSettings)
 
-	// Getting ALL Tests if Test-Assignments exist for the Label
 	var teAllTests TEAllTests
-	if(len(teLabel.Assignments)>0){
+	if len(teLabel.Assignments) > 0 {
 		teAllTests = getAllTests(teVisSettings.Token, teVisSettings.AID)
 	}
 
 	lines := []string{}
 	lines = append(lines, "---")
-	//lines = append(lines, "title: "+teLabel.Value)
 	lines = append(lines, "theme: base")
 	lines = append(lines, "config:")
 	lines = append(lines, "---")
 	lines = append(lines, "graph "+teVisSettings.GraphDirection)
 
-	if(teVisSettings.GraphLook == "dark"){
+	if teVisSettings.GraphLook == "dark" {
 		lines = append(lines, "linkStyle default stroke:#ffffff")
-	}		
+	}
 
 	lines = append(lines, "classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000")
     lines = append(lines, "classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF")
     lines = append(lines, "classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF")
 
+	nodes := make(map[string]VisNode)
+	var edges []VisEdge
+
 	for _, assignedTest := range teLabel.Assignments {
-		for _, test := range teAllTests.Tests{
-			if(test.TestID == assignedTest.ID){				
-				mermaidTest := ""
-				mermaidTest = fmt.Sprintf("test_%s[\"%s<br>*Type: %s<br>Interval: %ds*\"]:::teTest", test.TestID, test.TestName, test.Type, test.Interval )
-				lines = append(lines, mermaidTest)
-
-				teTestDetail := getTestDetails(test.Links.Self.Href, teVisSettings.Token)
-				// Define the Agents
-                mermaidAgent := ""
-
-				for _, agent := range teTestDetail.Agents {
-                    if(agent.AgentType == "cloud"){
-                        mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s*\"]):::teAgent",agent.AgentID, agent.AgentName, agent.AgentType )
-                    }
-
-                    if(agent.AgentType == "enterprise"){
-                        mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent", agent.AgentID, agent.AgentName, firstAgentIP(agent.PublicIPAddresses, agent.IPAddresses), agent.AgentType)
-                    }
-                    lines = append(lines, mermaidAgent)
-                }
-
-                // Connecting Agents to Tests
-                for _, agent := range teTestDetail.Agents {
-                    lines = append(lines, "agent_"+agent.AgentID+" --> test_"+test.TestID)
-                }
-
-				// Connecting Tests to Test-Targets
-				mermaidTestTarget := "test_"+test.TestID+" -- unsupported --> target_dummy>Test-Type not yet supported in teVis]:::teTarget"
-
-				if(test.Type == "agent-to-server"){
-					mermaidTestTarget = fmt.Sprintf("test_%s -- %s --> srv_%s[\"%s\"]:::teTarget", test.TestID, test.Protocol, test.TestID, test.Server)
-				}
-
-				if(test.Type == "http-server"){
-					mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.Protocol, test.PathTraceMode, test.TestID, test.URL)
-				}
-
-				if(test.Type == "page-load"){
-					mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.Protocol, test.PathTraceMode, test.TestID, test.URL)
-				}
-
-				if(test.Type == "dns-server"){
-					for _, dnsServer := range test.DNSServers {
-						mermaidTestTarget = fmt.Sprintf("test_%s -- Trace: %s --> srv_%s_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.PathTraceMode, test.TestID, dnsServer.ServerID, dnsServer.ServerName)
-						lines = append(lines, mermaidTestTarget)
-					}
-					mermaidTestTarget = ""
-				}
-				lines = append(lines, mermaidTestTarget)
+		for _, test := range teAllTests.Tests {
+			if test.TestID == assignedTest.ID {
+				detail := getTestDetails(test.Links.Self.Href, teVisSettings.Token)
+				addMermaidAndVisForTest(&lines, nodes, &edges, test, detail, false)
 			}
 		}
 	}
 
-	if(len(teLabel.Assignments)==0){
+	if len(teLabel.Assignments) == 0 {
 		lines = append(lines, "no[No tests assigned to this label/tag.]:::teTest")
 	}
-	diagram := strings.Join(lines, "\n")
-
-	return diagram
-}
-
-func getAlertRules (token string) string {
-    slog.Debug("getAlertRules", "Getting ALL Alert-Rules...")
-	return "response"
+	return strings.Join(lines, "\n")
 }
 
 func getAllTests(teAGT string, teAID string) TEAllTests{
@@ -503,7 +535,6 @@ func getAllTests(teAGT string, teAID string) TEAllTests{
 	// Getting all TE Tests 
 	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tests?aid="+teAID)
 	response := helper.GETrequest(url,getData)
-    //fmt.Println(response)
     var teAllTests TEAllTests
     if !teJSONUnmarshal("getAllTests", response, &teAllTests) {
 		return teAllTests
@@ -515,30 +546,6 @@ func getAllTests(teAGT string, teAID string) TEAllTests{
     return teAllTests
 }
 
-func getTest(token string, testID string) TETest{
-    slog.Debug("getTest", "Getting Test details...")
-	slog.Debug("getTest", testID)
-
-    getData := map[string]string{
-		"Token": token,
-	}
-
-	// Getting  TE Test
-	url := fmt.Sprintf("https://api.thousandeyes.com/v7/tests/"+testID)
-	fmt.Println(url)
-	response := helper.GETrequest(url,getData)
-    //fmt.Println(response)
-    var teTest TETest
-    if !teJSONUnmarshal("getTest", response, &teTest) {
-		return teTest
-	}
-
-	slog.Debug("getTest", "CEA Test received", teTest)
-	slog.Debug("getTest", "Received Test Details...")
-
-    return teTest
-}
-
 func getTestDetails(testURL string, teAGT string) TETestDetail {
     getData := map[string]string{
 		"Token": teAGT,
@@ -547,7 +554,6 @@ func getTestDetails(testURL string, teAGT string) TETestDetail {
 	// Getting TE Tests Details 
 	url := fmt.Sprintf(testURL+"?expand=agent")
 	response := helper.GETrequest(url,getData)
-    //fmt.Println(response)
     var teTestDetail TETestDetail
     if !teJSONUnmarshal("getTestDetails", response, &teTestDetail) {
 		return teTestDetail
@@ -564,165 +570,80 @@ func createDiagrams(teLabels TELabels, teVisSettings TEVisSettings) ALLDiagrams 
 	slog.Debug("createDiagrams", "Creating Diagrams...")
 	for _, label := range teLabels.Tags {
         lines := []string{}
-		//lines = append(lines, "%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f3f4f5', 'primaryTextColor': '#171D26', 'lineColor': '#64748B', 'fontSize': '13px'}}}%%")
 	    lines = append(lines, "---")
 		lines = append(lines, "theme: base")
 	    lines = append(lines, "config:")
 	    lines = append(lines, "  look: "+teVisSettings.GraphLook)	
-//  		lines = append(lines, "  flowchart:")
-//    	lines = append(lines, "    curve: linear")
 	    lines = append(lines, "---")
 	    lines = append(lines, "graph "+teVisSettings.GraphDirection)
 
-		if(teVisSettings.GraphLook == "dark"){
+		if teVisSettings.GraphLook == "dark" {
 			lines = append(lines, "linkStyle default stroke:#ffffff")
 		}
-		
-		//lines = append(lines, "linkStyle default stroke-width:2")
 
 		lines = append(lines, "classDef teAgent fill:#FF9000,color:#fff,stroke:#FF9000")
         lines = append(lines, "classDef teTest fill:#02C8FF,color:#07182D,stroke:#02C8FF")
         lines = append(lines, "classDef teTarget fill:#0A60FF,color:#fff,stroke:#0A60FF")
 
+		nodes := make(map[string]VisNode)
+		var edges []VisEdge
+
 		for _, assignedTest := range label.Assignments {
-			//lines = append(lines, "subgraph Tests['<b>Tests</b>']")
             for _, test := range teAllTests.Tests{
-                if(test.TestID == assignedTest.ID){
-                    // Define the Tests
-					mermaidTest := ""
-					mermaidTest = fmt.Sprintf("test_%s[\"**%s**<br>*Type: %s<br>Interval: %ds*\"]:::teTest", test.TestID, test.TestName, test.Type, test.Interval )
-					lines = append(lines, mermaidTest)
-
+                if test.TestID == assignedTest.ID {
                     teTestDetail := getTestDetails(test.Links.Self.Href, teVisSettings.Token)
-
-                    // Define the Agents
-                    mermaidAgent := ""
-
-                    for _, agent := range teTestDetail.Agents {
-                        if(agent.AgentType == "cloud"){
-                            mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s*\"]):::teAgent",agent.AgentID, agent.AgentName, agent.AgentType )
-                        }
-
-                        if(agent.AgentType == "enterprise"){
-                            mermaidAgent = fmt.Sprintf("agent_%s([\"%s<br>*%s<br>%s*\"]):::teAgent", agent.AgentID, agent.AgentName, firstAgentIP(agent.PublicIPAddresses, agent.IPAddresses), agent.AgentType)
-                        }
-                        lines = append(lines, mermaidAgent)
-                    }
-
-                    // Connecting Agents to Tests
-                    for _, agent := range teTestDetail.Agents {
-                        lines = append(lines, "agent_"+agent.AgentID+" --> test_"+test.TestID)
-                    }
-
-					// Connecting Tests to Test-Targets
-					mermaidTestTarget := "test_"+test.TestID+" -- unsupported --> target_dummy>Test-Type not yet supported in teVis]:::teTarget"
-
-					if(test.Type == "agent-to-server"){
-						mermaidTestTarget = fmt.Sprintf("test_%s -- %s --> srv_%s[\"%s\"]:::teTarget", test.TestID, test.Protocol, test.TestID, test.Server)
-					}
-
-					if(test.Type == "http-server"){
-						mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.Protocol, test.PathTraceMode, test.TestID, test.URL)
-					}
-
-					if(test.Type == "page-load"){
-						mermaidTestTarget = fmt.Sprintf("test_%s -- %s<br>Trace: %s --> srv_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.Protocol, test.PathTraceMode, test.TestID, test.URL)
-					}
-
-					if(test.Type == "dns-server"){
-						for _, dnsServer := range test.DNSServers {
-							mermaidTestTarget = fmt.Sprintf("test_%s -- Trace: %s --> srv_%s_%s[\"<p>%s</p>\"]:::teTarget", test.TestID, test.PathTraceMode, test.TestID, dnsServer.ServerID, dnsServer.ServerName)
-							lines = append(lines, mermaidTestTarget)
-						}
-						mermaidTestTarget = ""
-					}
-					lines = append(lines, mermaidTestTarget)
+					addMermaidAndVisForTest(&lines, nodes, &edges, test, teTestDetail, true)
                 }
-            }			
-			//lines = append(lines, "end")	        
+            }
 		}
 
         diagram := strings.Join(lines, "\n")
+		vis := graphFromNodeMap(nodes, edges)
+		visBytes, err := json.Marshal(vis)
+		if err != nil {
+			slog.Error("createDiagrams vis JSON marshal failed", "err", err)
+			visBytes = []byte(`{"nodes":[],"edges":[]}`)
+		}
 
-        allDiagrams.Tags = append(allDiagrams.Tags, struct {
-            LabelID string
-            Diagram string
-			DarkMode bool
-        }{
-            LabelID: label.ID,
-            Diagram: diagram,
-			DarkMode: teVisSettings.DarkMode, 
+        allDiagrams.Tags = append(allDiagrams.Tags, LabelDiagram{
+            LabelID:  label.ID,
+            Diagram:  diagram,
+			DarkMode: teVisSettings.DarkMode,
+			VisJSON:  template.JS(visBytes),
         })
 	}
 	slog.Debug("createDiagrams", "Diagrams created.")
 	return allDiagrams
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("formTemplate.html")
-    if err != nil {
-        http.Error(w, "Error parsing template", http.StatusInternalServerError)
-        return
-    }
-    
-    err = tmpl.Execute(w, nil)
-    if err != nil {
-        http.Error(w, "Error executing template", http.StatusInternalServerError)
-		fmt.Println(err)
-        return
-    }
-	slog.Debug("homeHandler", "Form Page Template executed.")
-}
-
-func apiAccountGroupHandler(c *gin.Context) {   
+func apiAccountGroupHandler(c *gin.Context) {
 	userInput := c.Param("token")
-
 	slog.Debug("apiAccountGroupHandler", "Using Bearer", userInput)
-	//getAccountGroups(userInput)
-
 	c.String(http.StatusOK, getAccountGroups(userInput))
-    return
 }
 
-func apiAlertRulesHandler(c *gin.Context) {   
-	userInput := c.Param("token")
-
-	slog.Debug("apiAlertRulesHandler", "Using Bearer", userInput)
-	//getAccountGroups(userInput)
-
-	c.String(http.StatusOK, getAlertRules(userInput))
-    return
-}
-
-func apiLabelsHandler(c *gin.Context) {   
+func apiLabelsHandler(c *gin.Context) {
 	token := c.Param("token")
 	aid := c.Param("aid")
-
 	slog.Debug("apiLabelsHandler", "Using Bearer", token, "AID", aid)
-
 	c.String(http.StatusOK, getLabels2(token, aid))
-    return
 }
 
-func apiDiagramHandler(c *gin.Context, teVisSettings TEVisSettings) {   
+func apiDiagramHandler(c *gin.Context, teVisSettings TEVisSettings) {
 	teVisSettings.Token = c.Param("token")
 	teVisSettings.Label = c.Param("label")
 	teVisSettings.AID = c.Param("aid")
 
-	if(c.Param("look") == "classic" || c.Param("look") == "dark"){
+	if c.Param("look") == "classic" || c.Param("look") == "dark" {
 		teVisSettings.GraphLook = c.Param("look")
 	}
 
-	if(c.Param("direction") == "LR" || c.Param("direction") == "TD"){
+	if c.Param("direction") == "LR" || c.Param("direction") == "TD" {
 		teVisSettings.GraphDirection = c.Param("direction")
-	}	
+	}
 
-	fmt.Println(teVisSettings)
-	
 	slog.Debug("apiDiagramHandler", "Using Bearer", teVisSettings.Token, "Label", teVisSettings.Label, "AID", teVisSettings.AID)
-
 	c.String(http.StatusOK, getDiagram(teVisSettings))
-    return
 }
 
 func main() {
@@ -736,8 +657,7 @@ func main() {
 	teVisSettings.Build = curBuild
 	teVisSettings.ServerPort = "8090"
 
-	//logger := slog.New(slog.NewJSONHandler(os.Stderr,nil))
-	logger := slog.New(slog.NewJSONHandler(os.Stderr,&slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	slog.SetDefault(logger)
 	slog.Debug("main", "Application started - Version", teVisSettings.Version)
 	slog.Debug("main", "Current Build", teVisSettings.Build)
@@ -750,14 +670,32 @@ func main() {
 	router.StaticFile("/favicon.ico", "./templates/favicon.ico")
 	router.StaticFile("/js/main_jq.js", "./src/js/main_jq.js")
 	router.StaticFile("/img/teVisLogo.png", "./src/img/teVisLogo.png")
-	//router.StaticFile("/js/app.js", "./src/js/app.js")
-	//router.StaticFile("/js/test_app.jsx", "./src/js/test_app.jsx")
 	router.StaticFile("/css/tevis.css", "./src/css/tevis.css")
 	router.StaticFile("/js/tevis-topology-static.js", "./src/js/tevis-topology-static.js")
 	router.StaticFile("/testpage", "./templates/test_page.html")
 
 	// GIN - Templates
 	router.LoadHTMLGlob("templates/*")
+
+	applyTEPost := func(c *gin.Context, s *TEVisSettings) {
+		s.DarkMode = false
+		s.Token = c.PostForm("userInput")
+		gl := c.PostForm("radioDefault")
+		if gl != "" {
+			s.GraphLook = gl
+		}
+		gd := c.PostForm("radioDirection")
+		if gd != "" {
+			s.GraphDirection = gd
+		}
+		if gb := c.PostForm("radioBrandColors"); gb != "" {
+			s.GraphBrand = gb
+		}
+		s.AID = c.PostForm("ag")
+		if s.GraphLook == "dark" {
+			s.DarkMode = true
+		}
+	}
 
 	// GIN - Routes
 	router.GET("/", func(c *gin.Context) {
@@ -767,19 +705,19 @@ func main() {
         })
     })
 
+	router.GET("/form", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "formTemplate.html", gin.H{})
+	})
+
 	router.POST("/submit", func(c *gin.Context) {		
-	    // Get the input value
-		teVisSettings.DarkMode = false
-	    teVisSettings.Token = c.PostForm("userInput")
-		teVisSettings.GraphLook = c.PostForm("radioDefault")
-		teVisSettings.GraphDirection = c.PostForm("radioDirection")
-		teVisSettings.GraphBrand = c.PostForm("radioBrandColors")
-		teVisSettings.AID = c.PostForm("ag")
-
-		if(teVisSettings.GraphLook == "dark"){
-			teVisSettings.DarkMode = true
+		applyTEPost(c, &teVisSettings)
+		if err := ensureAID(&teVisSettings); err != nil {
+			slog.Warn("submitHandler ensureAID", "err", err)
+			c.HTML(http.StatusOK, "formTemplate.html", gin.H{
+				"Error": "Could not determine account group (aid): " + err.Error(),
+			})
+			return
 		}
-
 		slog.Debug("submitHandler", "Current teVis Settings:", teVisSettings)
 
 		teLabels := getLabels(teVisSettings)
@@ -809,8 +747,75 @@ func main() {
 
 	router.GET("/topology", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "topology.html", gin.H{
-			"title": "Topology (sample) · teVis",
+			"title":           "Topology · teVis",
+			"CredentialStep": true,
 		})
+	})
+
+	router.POST("/topology", func(c *gin.Context) {
+		var s TEVisSettings
+		s.GraphLook = "classic"
+		s.GraphDirection = "LR"
+		s.GraphBrand = "thousandeyes"
+		applyTEPost(c, &s)
+		if err := ensureAID(&s); err != nil {
+			slog.Warn("topologyPost ensureAID", "err", err)
+			c.HTML(http.StatusOK, "topology.html", gin.H{
+				"title":            "Topology · teVis",
+				"CredentialStep":     true,
+				"Error":              "Could not determine account group (aid): " + err.Error(),
+			})
+			return
+		}
+		teLabels := getLabels(s)
+		teAllTests := getAllTests(s.Token, s.AID)
+		tags := topologySelectableTags(teLabels)
+		labelID := strings.TrimSpace(c.PostForm("labelId"))
+
+		baseH := gin.H{
+			"title":           "Topology · teVis",
+			"CredentialStep":  false,
+			"UserAID":         s.AID,
+			"GraphLook":       s.GraphLook,
+			"GraphDir":        s.GraphDirection,
+			"GraphBrand":      s.GraphBrand,
+			"Tags":            tags,
+			"Token":           s.Token,
+			"SelectedLabelID": labelID,
+		}
+
+		if labelID == "" {
+			if len(tags) == 0 {
+				baseH["Error"] = "No tags with test assignments were found for this account. Try another token or account group (aid override)."
+				baseH["CredentialStep"] = true
+				baseH["ShowTagPicker"] = false
+				baseH["ShowGraph"] = false
+				c.HTML(http.StatusOK, "topology.html", baseH)
+				return
+			}
+			baseH["ShowTagPicker"] = true
+			baseH["ShowGraph"] = false
+			c.HTML(http.StatusOK, "topology.html", baseH)
+			return
+		}
+
+		graph, err := visGraphForTag(teLabels, teAllTests, s.Token, labelID)
+		if err != nil {
+			baseH["Error"] = "Could not build graph for this tag: " + err.Error()
+			baseH["ShowTagPicker"] = true
+			baseH["ShowGraph"] = false
+			baseH["SelectedLabelID"] = ""
+			c.HTML(http.StatusOK, "topology.html", baseH)
+			return
+		}
+		raw, mErr := json.Marshal(graph)
+		if mErr != nil {
+			raw = []byte(`{"nodes":[],"edges":[]}`)
+		}
+		baseH["ShowTagPicker"] = true
+		baseH["ShowGraph"] = true
+		baseH["MergedVis"] = template.JS(raw)
+		c.HTML(http.StatusOK, "topology.html", baseH)
 	})
 
 	router.GET("/endpoint", func(c *gin.Context) {
@@ -849,9 +854,6 @@ func main() {
     })
 
 	router.GET("/api/accountgroups/:token", apiAccountGroupHandler)
-
-	router.GET("/api/alertrules/:token", apiAlertRulesHandler)
-
 	router.GET("/api/labels/:token/:aid", apiLabelsHandler)
 
 	router.GET("/api/diagram/:token/:aid/:label/:direction/:look", func(c *gin.Context) {

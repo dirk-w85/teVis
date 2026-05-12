@@ -3,6 +3,9 @@
 	<div class="container py-4 px-3 mx-auto">
     <div class="form-container">
         <h2>ThousandEyes PoV Visualizer</h2>
+        {{ if .Error }}
+        <div class="alert alert-danger" role="alert">{{ .Error }}</div>
+        {{ end }}
         <form action="/submit" method="POST" id="teForm">
 		    <div class="form-floating mb-3">
             <input type="text" class="form-control" id="userInput" name="userInput" required>
@@ -10,13 +13,14 @@
         	</div>
             <button type="button" id="getAG">Get Account-Groups</button>
             <br>
+            <p class="text-muted small">Account group is optional. If you leave it empty, the first account group (by name) from your token is used automatically.</p>
             <div id="dropdown" class="d-flex justify-content-center d-none">
-                <p>Account Group: 
-                <select id="ag" name="ag"></select>
+                <p>Account Group (optional override): 
+                <select id="ag" name="ag"><option value="">— auto —</option></select>
                 </p>
             </div>
             <hr>
-            <div id="graphSettings" class="d-none">
+            <div id="graphSettings">
             <p>Graph Direction:</p>
             <div class="form-check">
               <input class="form-check-input" type="radio" value="LR" name="radioDirection" id="radioDirection1" checked>
@@ -37,7 +41,7 @@
               <label class="form-check-label" for="radioDefault1">dark</label>
             </div>
             <br>            
-            <button type="submit" id="submitBtn" disabled>Create Diagrams</button>
+            <button type="submit" id="submitBtn">Create Diagrams</button>
             <div class="d-flex justify-content-center d-none" id="loading-spinner">
               <div class="spinner-border" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -76,11 +80,10 @@ $(document).ready(function() {
           if(data.error){
             alert(data.error+" : "+data.error_description)
           }else{
+            $("#ag").find('option:not(:first)').remove();
             $.each(data.accountGroups, function(key, value) {
-              //alert(key+":"+value.aid)
-              //$("#ag").append('<option value="'+value.aid+'" class="dropdown-item">'+value.accountGroupName+'</option>');
-              //console.log(key.aid + ": " + value);
-            });       
+              $("#ag").append('<option value="'+value.aid+'">'+$('<div/>').text(value.accountGroupName).html()+'</option>');
+            });
 
             $("#dropdown").removeClass('d-none');
             $("#graphSettings").removeClass('d-none');

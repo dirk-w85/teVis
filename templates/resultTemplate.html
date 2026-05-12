@@ -27,7 +27,7 @@
           </ul>
         </nav>
         <p><strong>Bearer Token used:</strong> {{.UserInput}} <strong>  Account-Group:</strong> {{.UserAID}}</p>
-        <p><a href="/">← Go back to form</a></p>
+        <p><a href="/">← Go back to form</a> · <a href="/topology">Topology page</a></p>
     </div>
     <div data-bs-spy="scroll" data-bs-target="#navbar-example2" data-bs-root-margin="0px 0px -40%" data-bs-smooth-scroll="true" class="scrollspy-example p-3 rounded-2" tabindex="0">
     <h4 id="cea">Cloud & Enterprise Tests</h4>
@@ -45,7 +45,10 @@
                 {{if eq .LabelID $currentID}}
             <pre class="mermaid {{if .DarkMode }}tevis-dark{{end}}">
 {{.Diagram}}
-            </pre>    
+            </pre>
+            <p class="text-muted small mb-1">Interactive graph (same data as Mermaid)</p>
+            <div id="vis-graph-{{$currentID}}" class="rounded border bg-light mb-3" style="height:480px;width:100%;" role="img" aria-label="Topology graph for this label"></div>
+            <script type="application/json" class="tevis-vis-json" data-target="vis-graph-{{$currentID}}">{{.VisJSON}}</script>
             <br>      
             <p class="d-inline-flex gap-1">
               <a class="btn btn-primary" data-bs-toggle="collapse" href="#collapse{{$currentID}}" role="button" aria-expanded="false" aria-controls="collapseExample">Show Mermaid Code</a>
@@ -89,6 +92,25 @@
         <p><strong>Bearer Token used:</strong> {{.UserInput}}</p>
         <p><a href="/">← Go back to form</a></p>
     </div>
+	<script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+	<script src="/js/tevis-topology-static.js"></script>
+	<script>
+	document.addEventListener("DOMContentLoaded", function () {
+		document.querySelectorAll("script.tevis-vis-json").forEach(function (el) {
+			var targetId = el.getAttribute("data-target");
+			var graphEl = targetId ? document.getElementById(targetId) : null;
+			if (!graphEl || !el.textContent) return;
+			try {
+				var data = JSON.parse(el.textContent);
+				if (typeof tevisTopologyInit === "function") {
+					tevisTopologyInit(targetId, null, data);
+				}
+			} catch (e) {
+				console.error("teVis vis init failed", e);
+			}
+		});
+	});
+	</script>
 	<script type="module">
       import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
       mermaid.initialize({ startOnLoad: true });
