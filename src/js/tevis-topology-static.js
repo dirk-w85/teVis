@@ -144,14 +144,51 @@
     return 1;
   }
 
-  function estimateNodeSize(label) {
-    const lines = String(label || "").split("\n");
+  function wrapLabel(text, maxCharsPerLine) {
+    const out = [];
+    String(text || "")
+      .split("\n")
+      .forEach(function (line) {
+        line = line.trim();
+        if (!line) {
+          out.push("");
+          return;
+        }
+        while (line.length > maxCharsPerLine) {
+          let breakAt = line.lastIndexOf(" ", maxCharsPerLine);
+          if (breakAt <= 0) breakAt = maxCharsPerLine;
+          out.push(line.slice(0, breakAt).trim());
+          line = line.slice(breakAt).trim();
+        }
+        if (line) out.push(line);
+      });
+    return out.join("\n");
+  }
+
+  function measureNode(label, group) {
+    const fontSize = group === "target" ? 12 : 13;
+    const charPx = fontSize * 0.58;
+    const maxNodeWidth = 340;
+    const minWidth = 136;
+    const hPad = 32;
+    const vPad = 24;
+    const lineHeight = fontSize + 5;
+    const maxChars = Math.max(12, Math.floor((maxNodeWidth - hPad) / charPx));
+    const displayLabel = wrapLabel(label, maxChars);
+    const lines = displayLabel.split("\n");
     const maxLen = Math.max(1, ...lines.map(function (l) {
       return l.length;
     }));
-    const width = Math.min(300, Math.max(130, maxLen * 7 + 28));
-    const height = Math.max(48, lines.length * 17 + 24);
-    return [width, height];
+    const width = Math.min(maxNodeWidth, Math.max(minWidth, Math.ceil(maxLen * charPx) + hPad));
+    const labelWidth = width - hPad;
+    const height = Math.max(52, lines.length * lineHeight + vPad);
+    return {
+      size: [width, height],
+      displayLabel: displayLabel,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      labelWidth: labelWidth,
+    };
   }
 
   function normalizeDirection(dir) {
@@ -170,20 +207,36 @@
       });
     });
 
-    const colSep = 360;
-    const rowSep = 130;
+    const colSep = 380;
     const vertical = normalizeDirection(direction) === "vertical";
     const positioned = [];
 
     buckets.forEach(function (col, lvl) {
+      const rowGap = 24;
+      const measuredCol = col.map(function (n) {
+        return measureNode(n.label, n.group);
+      });
+      const maxColHeight = Math.max.apply(
+        null,
+        measuredCol.map(function (m) {
+          return m.size[1];
+        })
+      );
+      const levelSep = maxColHeight + 80;
+
       col.forEach(function (n, i) {
-        const size = estimateNodeSize(n.label);
-        const offset = (i - (col.length - 1) / 2) * rowSep;
+        const measured = measuredCol[i];
+        const rowStep = measured.size[1] + rowGap;
+        const offset = i * rowStep - ((col.length - 1) * rowStep) / 2;
         positioned.push(
           Object.assign({}, n, {
-            symbolSize: size,
+            symbolSize: measured.size,
+            displayLabel: measured.displayLabel,
+            labelFontSize: measured.fontSize,
+            labelLineHeight: measured.lineHeight,
+            labelWidth: measured.labelWidth,
             x: vertical ? offset : lvl * colSep,
-            y: vertical ? lvl * rowSep : offset,
+            y: vertical ? lvl * levelSep : offset,
           })
         );
       });
@@ -207,7 +260,7 @@
       const style = styleForGroup(n.group, dark);
       return {
         id: n.id,
-        name: n.label,
+        name: n.displayLabel || n.label,
         x: n.x,
         y: n.y,
         symbol: "roundRect",
@@ -225,9 +278,13 @@
         label: {
           show: true,
           color: style.text,
-          fontSize: n.group === "target" ? 13 : 14,
+          fontSize: n.labelFontSize || 13,
           fontFamily: fontStack,
-          lineHeight: 17,
+          lineHeight: n.labelLineHeight || 18,
+          width: n.labelWidth,
+          overflow: "break",
+          align: "center",
+          verticalAlign: "middle",
         },
       };
     });
@@ -239,7 +296,7 @@
         lineStyle: {
           color: edgeColor,
           width: 2,
-          curveness: 0.15,
+          curveness: 0,
         },
       };
       if (e.label) {
@@ -277,10 +334,13 @@
           links: links,
           categories: [{ name: "Agents" }, { name: "Tests" }, { name: "Targets" }],
           edgeSymbol: ["none", "arrow"],
-          edgeSymbolSize: 8,
+          edgeSymbolSize: 10,
+          lineStyle: {
+            curveness: 0,
+          },
           emphasis: {
             focus: "adjacency",
-            lineStyle: { width: 3, color: dark ? "#38bdf8" : "#2563eb" },
+            lineStyle: { width: 3, color: dark ? "#38bdf8" : "#2563eb", curveness: 0 },
           },
         },
       ],
