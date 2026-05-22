@@ -14,19 +14,13 @@
     </div>
     </footer>   
 
-    <!-- Vis.js Logic -->
-    <script type="text/javascript">   
-    // Interactive Graph Settings Logic
-    document.querySelectorAll('input[name="graphDirection"]').forEach((radio) => {
-        radio.addEventListener('change', (e) => {
-            const newDirection = e.target.value;
-            network.setOptions({
-                layout: {
-                    hierarchical: {
-                        direction: newDirection
-                    }
-                }
-            });
+    <!-- Graph direction (Enterprise page) -->
+    <script type="text/javascript">
+    document.querySelectorAll('input[name="graphDirection"]').forEach(function (radio) {
+        radio.addEventListener('change', function (e) {
+            if (typeof tevisTopologySetDirection === 'function') {
+                tevisTopologySetDirection('visGraph', e.target.value);
+            }
         });
     });
     </script>

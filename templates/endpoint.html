@@ -2,237 +2,98 @@
 <div id="app">
     <div class="container py-4 px-3 mx-auto">
     <div class="form-container">
-        <h2>ThousandEyes PoV Visualizer - {{ .topic }}</h2>       
-		    <div class="form-floating mb-3">
-            <input type="text" id="userInput" name="userInput" size="40" placeholder="Bearer Token" required> 
-            <button type="button" id="getAG">Get Account-Groups</button>           
-        </div>            
-            <div id="dropdown" class="justify-content-center d-none">
-                <label for="dropdown">Account Groups:</label>
-                <select id="ag" name="ag"></select>
-            </div>
-            <button id="labelBtn" class="d-none">Get Labels</button>
-            <div id="dropdownLabel" class="justify-content-center d-none">
-              <label for="dropdown">Labels:</label>
-              <select id="label" name="label"></select>
-            </div>
-            
-            <div id="graphSettings" class="d-none">
+        <h2>ThousandEyes PoV Visualizer - {{ .topic }}</h2>
+        <div class="form-floating mb-3">
+            <input type="text" id="userInput" name="userInput" size="40" placeholder="Bearer Token" required>
+            <button type="button" id="getAG">Get Account-Groups</button>
+        </div>
+        <div id="dropdown" class="justify-content-center d-none">
+            <label for="dropdown">Account Groups:</label>
+            <select id="ag" name="ag"></select>
+        </div>
+        <button id="labelBtn" class="d-none">Get Labels</button>
+        <div id="dropdownLabel" class="justify-content-center d-none">
+            <label for="dropdown">Labels:</label>
+            <select id="label" name="label"></select>
+        </div>
+
+        <div id="graphSettings" class="d-none">
             <hr>
             <fieldset class="radio-group">
-              <legend style="font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; color: var(--midnight-blue);">Graph Settings</legend>
-              <p>Direction:</p>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" value="LR" name="radioDirection" id="radioDirection1" checked>
-                <label class="form-check-label" for="radioDefault1">Left-to-Right</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" value="TD" name="radioDirection" id="radioDirection2">
-                <label class="form-check-label" for="radioDefault2">Top-Down</label>
-              </div>
-              <br>
-              <p>Look:</p>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" value="classic" name="radioLook" id="radioDefault1" checked>
-                <label class="form-check-label" for="radioDefault1">classic</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" value="dark" name="radioLook" id="radioDefault2">
-                <label class="form-check-label" for="radioDefault2">dark</label>
-              </div> 
-            </fieldset>            
-        </div>      
+                <legend style="font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; color: var(--midnight-blue);">Graph Settings</legend>
+                <p>Direction:</p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" value="LR" name="radioDirection" id="radioDirection1" checked>
+                    <label class="form-check-label" for="radioDefault1">Left-to-Right</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" value="TD" name="radioDirection" id="radioDirection2">
+                    <label class="form-check-label" for="radioDefault2">Top-Down</label>
+                </div>
+                <br>
+                <p>Look:</p>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" value="classic" name="radioLook" id="radioLookClassic" checked>
+                    <label class="form-check-label" for="radioLookClassic">classic</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" value="dark" name="radioLook" id="radioLookDark">
+                    <label class="form-check-label" for="radioLookDark">dark</label>
+                </div>
+            </fieldset>
+        </div>
         <button id="diagramBtn" class="d-none">Create Diagram</button>
         <div class="d-flex justify-content-center d-none" id="loading-spinner">
-          <div class="spinner-border" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
         </div>
-        <div id="mermaidCard" class="card">
-          
-        </div>
-        <div id="network-container" height="100%"></div> 
-      <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+        <div id="mermaidCard" class="card"></div>
+        <div id="network-container" style="height:800px;width:100%;"></div>
     </div>
-	</div>
+    </div>
 </div>
 
 <script>
-  // ── Design Tokens ──────────────────────────────────────────
-  const T = {
-    bgNode:      "#0a1220",
-    blue:        "#049fd9",
-    blueGlow:    "#049fd9",
-    green:       "#00e5a0",
-    red:         "#ff4d6d",
-    orange:      "#ffaa00",
-    purple:      "#a78bfa",
-    textPrimary: "#e8f0fe",
-    textSub:     "#7a9bb5",
+document.addEventListener("DOMContentLoaded", function () {
+  var endpointGraph = {
+    nodes: [
+      { id: "A", label: "Endpoint Agent\nDWOELLHA-M-3HQT\nStuttgart, Germany", group: "agent" },
+      { id: "T169647", label: "Attendee Dashboard\nhttp-server · reg.rainfocus.com", group: "test" },
+      { id: "T113883", label: "CLUSA Speaker Resource Centre\nhttp-server · reg.rainfocus.com", group: "test" },
+      { id: "T256824", label: "Microsoft Teams\nhttp-server · teams.microsoft.com", group: "test" },
+      { id: "T197124", label: "Stuttgart – Default Gateway\nagent-to-server · 10.1.17.1", group: "test" },
+      { id: "T347759", label: "Webex\nhttp-server · cisco.webex.com", group: "test" },
+      { id: "T370262", label: "webhook.site\nhttp-server · webhook.site", group: "test" },
+      { id: "T113337", label: "Cisco Live\nhttp-server · www.ciscolive.com", group: "test" },
+      { id: "T133395", label: "www.cisco.com\nhttp-server · www.cisco.com", group: "test" }
+    ],
+    edges: [
+      { from: "A", to: "T169647" },
+      { from: "A", to: "T113883" },
+      { from: "A", to: "T256824" },
+      { from: "A", to: "T197124" },
+      { from: "A", to: "T347759" },
+      { from: "A", to: "T370262" },
+      { from: "A", to: "T113337" },
+      { from: "A", to: "T133395" }
+    ]
   };
 
-  // ── Node Factory ───────────────────────────────────────────
-  function makeNode({ id, label, title, borderColor, glowColor, fontColor = T.textPrimary, bold = false }) {
-    return {
-      id, label, title,
-      shape: "box",
-      borderWidth: 1.5,
-      borderWidthSelected: 2.5,
-      widthConstraint: { maximum: 220 },
-      margin: { top: 12, bottom: 12, left: 14, right: 14 },
-      color: {
-        background: T.bgNode,
-        border:     borderColor,
-        highlight:  { background: "#111d2e", border: glowColor },
-        hover:      { background: "#0f1a2c", border: glowColor }
-      },
-      font: {
-        face:  "Inter, Arial",
-        size:  12,
-        color: fontColor,
-        multi: true
-      },
-      shadow: {
-        enabled: true,
-        color:   glowColor + "55",
-        size:    14,
-        x: 0, y: 0
-      }
-    };
+  function paintEndpointGraph() {
+    if (typeof tevisTopologyInit !== "function") return;
+    var dirEl = document.querySelector('input[name="radioDirection"]:checked');
+    var lookEl = document.querySelector('input[name="radioLook"]:checked');
+    tevisTopologyInit("network-container", {
+      graphDirection: dirEl ? dirEl.value : "LR",
+      visDarkBackground: lookEl ? lookEl.value === "dark" : true
+    }, endpointGraph);
   }
 
-  // ── Nodes ──────────────────────────────────────────────────
-  const nodes = new vis.DataSet([
-
-    makeNode({
-      id: "A",
-      label: "<b>Endpoint Agent</b>\n─────────────────\nDWOELLHA-M-3HQT\n📍 Stuttgart, Germany",
-      title: "Endpoint Agent\nHost: DWOELLHA-M-3HQT\nLocation: Stuttgart, Germany 🇩🇪",
-      borderColor: T.blue,
-      glowColor:   T.blueGlow,
-      fontColor:   "#00bceb",
-      bold: true
-    }),
-
-    makeNode({
-      id: "T169647",
-      label: "Attendee Dashboard\n<b>http-server</b>  ·  ✅  ·  ⏱ 60s\nreg.rainfocus.com",
-      title: "Test: Attendee Dashboard\nID: T169647\nType: http-server\nTarget: reg.rainfocus.com\nInterval: 60s\nStatus: ✅ Enabled",
-      borderColor: T.green,
-      glowColor:   T.green
-    }),
-
-    makeNode({
-      id: "T113883",
-      label: "CLUSA Speaker Resource Centre\n<b>http-server</b>  ·  ❌  ·  ⏱ 300s\nreg.rainfocus.com",
-      title: "Test: CLUSA Speaker Resource Centre\nID: T113883\nType: http-server\nTarget: reg.rainfocus.com\nInterval: 300s\nStatus: ❌ Disabled",
-      borderColor: T.red,
-      glowColor:   T.red
-    }),
-
-    makeNode({
-      id: "T256824",
-      label: "Microsoft Teams\n<b>http-server</b>  ·  ✅  ·  ⏱ 60s\nteams.microsoft.com",
-      title: "Test: Microsoft Teams\nID: T256824\nType: http-server\nTarget: teams.microsoft.com\nInterval: 60s\nStatus: ✅ Enabled",
-      borderColor: T.green,
-      glowColor:   T.green
-    }),
-
-    makeNode({
-      id: "T197124",
-      label: "Stuttgart – Default Gateway\n<b>agent-to-server</b>  ·  ✅  ·  ⏱ 300s\n10.1.17.1",
-      title: "Test: Stuttgart Default Gateway\nID: T197124\nType: agent-to-server\nTarget: 10.1.17.1\nInterval: 300s\nStatus: ✅ Enabled",
-      borderColor: T.orange,
-      glowColor:   T.orange
-    }),
-
-    makeNode({
-      id: "T347759",
-      label: "Webex\n<b>http-server</b>  ·  ✅  ·  ⏱ 60s\ncisco.webex.com",
-      title: "Test: Webex\nID: T347759\nType: http-server\nTarget: cisco.webex.com\nInterval: 60s\nStatus: ✅ Enabled",
-      borderColor: T.green,
-      glowColor:   T.green
-    }),
-
-    makeNode({
-      id: "T370262",
-      label: "webhook.site\n<b>http-server</b>  ·  ❌  ·  ⏱ 60s\nwebhook.site",
-      title: "Test: webhook.site\nID: T370262\nType: http-server\nTarget: webhook.site\nInterval: 60s\nStatus: ❌ Disabled",
-      borderColor: T.red,
-      glowColor:   T.red
-    }),
-
-    makeNode({
-      id: "T113337",
-      label: "Cisco Live\n<b>http-server</b>  ·  ✅  ·  ⏱ 300s\nwww.ciscolive.com",
-      title: "Test: Cisco Live\nID: T113337\nType: http-server\nTarget: www.ciscolive.com\nInterval: 300s\nStatus: ✅ Enabled",
-      borderColor: T.green,
-      glowColor:   T.green
-    }),
-
-    makeNode({
-      id: "T133395",
-      label: "www.cisco.com\n<b>http-server</b>  ·  ✅  ·  ⏱ 300s\nwww.cisco.com",
-      title: "Test: www.cisco.com\nID: T133395\nType: http-server\nTarget: www.cisco.com\nInterval: 300s\nStatus: ✅ Enabled",
-      borderColor: T.green,
-      glowColor:   T.green
-    })
-  ]);
-
-  // ── Edge Factory ───────────────────────────────────────────
-  function makeEdge(from, to, color, glowColor) {
-    return {
-      from, to,
-      arrows: { to: { enabled: true, scaleFactor: 0.65, type: "arrow" } },
-      color:  { color, highlight: glowColor, hover: glowColor, opacity: 0.75 },
-      width:  1.5,
-      smooth: { type: "cubicBezier", forceDirection: "horizontal", roundness: 0.45 },
-      shadow: { enabled: true, color: glowColor + "40", size: 6, x: 0, y: 0 },
-      selectionWidth: 2.5
-    };
-  }
-
-  const edges = new vis.DataSet([
-    makeEdge("A", "T169647", T.green,  T.green),
-    makeEdge("A", "T113883", T.red,    T.red),
-    makeEdge("A", "T256824", T.green,  T.green),
-    makeEdge("A", "T197124", T.orange, T.orange),
-    makeEdge("A", "T347759", T.green,  T.green),
-    makeEdge("A", "T370262", T.red,    T.red),
-    makeEdge("A", "T113337", T.green,  T.green),
-    makeEdge("A", "T133395", T.green,  T.green),
-  ]);
-
-  // ── Network Options ────────────────────────────────────────
-  const options = {
-    layout: {
-      hierarchical: {
-        direction:       "LR",
-        sortMethod:      "directed",
-        nodeSpacing:     85,
-        levelSeparation: 500,
-        treeSpacing:     100
-      }
-    },
-    physics: { enabled: false },
-    interaction: {
-      hover:             true,
-      tooltipDelay:      60,
-      zoomView:          true,
-      dragView:          true,
-      navigationButtons: true,
-      keyboard:          false
-    },
-    width: '100%',
-    height: '800px',
-    nodes: { chosen: true },
-    edges: { chosen: true }
-  };
-
-  // ── Render ─────────────────────────────────────────────────
-  const container = document.getElementById("network-container");
-  const network   = new vis.Network(container, { nodes, edges }, options);
-
+  paintEndpointGraph();
+  document.querySelectorAll('input[name="radioDirection"], input[name="radioLook"]').forEach(function (el) {
+    el.addEventListener("change", paintEndpointGraph);
+  });
+});
 </script>
-</body>
 {{ template "footer.html" }}

@@ -1,5 +1,5 @@
 /**
- * vis-network topology: static fallback or server JSON from createDiagrams (nodes/edges).
+ * Apache ECharts topology: static fallback or server JSON from createDiagrams (nodes/edges).
  */
 (function () {
   "use strict";
@@ -59,279 +59,54 @@
   const fontStack =
     'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
-  /** Exact dark canvas for vis (product spec). */
+  /** Exact dark canvas (product spec). Kept as TEVIS_VIS_DARK_BG for template compatibility. */
   const TEVIS_VIS_DARK_BG = "#07182D";
 
-  const LIGHT_VIS_CONTAINER_BG =
-    "linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%)";
+  const LIGHT_CONTAINER_BG = "linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%)";
 
-  /**
-   * Light-surface nodes with a “shiny” look: brighter fills, thicker rims, and soft colored glows
-   * (vis canvas draws solid fills; depth comes from shadow + border, not gradients).
-   */
-  const defaultOptions = {
-    layout: {
-      hierarchical: {
-        direction: "LR",
-        sortMethod: "directed",
-        levelSeparation: 340,
-        nodeSpacing: 140,
-        treeSpacing: 260,
-      },
+  const GROUP_CATEGORY = { agent: 0, test: 1, target: 2 };
+
+  const LIGHT_STYLES = {
+    agent: {
+      fill: "#fffdf7",
+      border: "#f59e0b",
+      text: "#78350f",
+      shadow: "rgba(245, 158, 11, 0.35)",
     },
-    groups: {
-      agent: {
-        shape: "box",
-        borderWidth: 3,
-        margin: 16,
-        color: {
-          background: "#fffdf7",
-          border: "#f59e0b",
-          highlight: { background: "#fffbeb", border: "#d97706" },
-          hover: { background: "#fffef5", border: "#ea580c" },
-        },
-        font: {
-          color: "#78350f",
-          size: 15,
-          face: fontStack,
-          multi: false,
-          bold: false,
-          strokeWidth: 0,
-        },
-        shadow: {
-          enabled: true,
-          color: "rgba(245, 158, 11, 0.35)",
-          size: 22,
-          x: -2,
-          y: 4,
-        },
-        shapeProperties: { borderRadius: 10 },
-      },
-      test: {
-        shape: "box",
-        borderWidth: 3,
-        margin: 16,
-        color: {
-          background: "#f0fbff",
-          border: "#0ea5e9",
-          highlight: { background: "#e0f7ff", border: "#0284c7" },
-          hover: { background: "#ecfeff", border: "#0369a1" },
-        },
-        font: {
-          color: "#0c4a6e",
-          size: 15,
-          face: fontStack,
-          bold: false,
-          strokeWidth: 0,
-        },
-        shadow: {
-          enabled: true,
-          color: "rgba(14, 165, 233, 0.32)",
-          size: 22,
-          x: -2,
-          y: 4,
-        },
-        shapeProperties: { borderRadius: 10 },
-      },
-      target: {
-        shape: "box",
-        borderWidth: 3,
-        margin: 16,
-        color: {
-          background: "#faf8ff",
-          border: "#7c3aed",
-          highlight: { background: "#f5f3ff", border: "#5b21b6" },
-          hover: { background: "#f3e8ff", border: "#6d28d9" },
-        },
-        font: {
-          color: "#1e1b4b",
-          size: 14,
-          face: fontStack,
-          bold: false,
-          strokeWidth: 0,
-        },
-        shadow: {
-          enabled: true,
-          color: "rgba(124, 58, 237, 0.28)",
-          size: 22,
-          x: -2,
-          y: 4,
-        },
-        shapeProperties: { borderRadius: 10 },
-      },
+    test: {
+      fill: "#f0fbff",
+      border: "#0ea5e9",
+      text: "#0c4a6e",
+      shadow: "rgba(14, 165, 233, 0.32)",
     },
-    nodes: {
-      margin: 16,
-      borderWidth: 3,
-      borderWidthSelected: 4,
-      widthConstraint: { maximum: 300 },
-      labelHighlightBold: false,
-      font: {
-        size: 15,
-        face: fontStack,
-        align: "center",
-        vadjust: 0,
-        color: "#0f172a",
-        strokeWidth: 0,
-      },
-      shadow: {
-        enabled: true,
-        color: "rgba(15, 23, 42, 0.14)",
-        size: 18,
-        x: -1,
-        y: 3,
-      },
-    },
-    edges: {
-      width: 2,
-      color: {
-        color: "#94a3b8",
-        highlight: "#2563eb",
-        hover: "#64748b",
-        inherit: false,
-      },
-      arrows: {
-        to: {
-          enabled: true,
-          scaleFactor: 0.9,
-          type: "arrow",
-        },
-      },
-      smooth: { type: "cubicBezier", forceDirection: "horizontal", roundness: 0.35 },
-      font: {
-        size: 12,
-        align: "middle",
-        face: fontStack,
-        color: "#0f172a",
-        strokeWidth: 0,
-      },
-    },
-    physics: false,
-    interaction: {
-      hover: true,
-      hoverConnectedEdges: true,
-      navigationButtons: true,
-      keyboard: true,
-      tooltipDelay: 180,
+    target: {
+      fill: "#faf8ff",
+      border: "#7c3aed",
+      text: "#1e1b4b",
+      shadow: "rgba(167, 139, 250, 0.28)",
     },
   };
 
-  function cloneTopologyOptions() {
-    return JSON.parse(JSON.stringify(defaultOptions));
-  }
-
-  function mergeGroup(base, patch) {
-    const g = Object.assign({}, base);
-    if (patch.color) {
-      g.color = Object.assign({}, base.color, patch.color);
-      if (patch.color.highlight) {
-        g.color.highlight = Object.assign({}, base.color.highlight, patch.color.highlight);
-      }
-      if (patch.color.hover) {
-        g.color.hover = Object.assign({}, base.color.hover, patch.color.hover);
-      }
-    }
-    if (patch.font) {
-      g.font = Object.assign({}, base.font, patch.font);
-    }
-    if (patch.shadow) {
-      g.shadow = Object.assign({}, base.shadow, patch.shadow);
-    }
-    if (patch.borderWidth != null) {
-      g.borderWidth = patch.borderWidth;
-    }
-    if (patch.shapeProperties) {
-      g.shapeProperties = Object.assign({}, base.shapeProperties, patch.shapeProperties);
-    }
-    return g;
-  }
-
-  /** Node/edge colors tuned for canvas background {@link TEVIS_VIS_DARK_BG}. */
-  function applyDarkVisTheme(options) {
-    const darkGroup = {
-      agent: {
-        color: {
-          background: "#0f3557",
-          border: "#fbbf24",
-          highlight: { background: "#134a78", border: "#fcd34d" },
-          hover: { background: "#164e7a", border: "#fde68a" },
-        },
-        font: { color: "#fef3c7" },
-        shadow: {
-          enabled: true,
-          color: "rgba(251, 191, 36, 0.35)",
-          size: 22,
-          x: -2,
-          y: 4,
-        },
-      },
-      test: {
-        color: {
-          background: "#0c3550",
-          border: "#38bdf8",
-          highlight: { background: "#0e4a6e", border: "#7dd3fc" },
-          hover: { background: "#0f5680", border: "#bae6fd" },
-        },
-        font: { color: "#e0f2fe" },
-        shadow: {
-          enabled: true,
-          color: "rgba(56, 189, 248, 0.35)",
-          size: 22,
-          x: -2,
-          y: 4,
-        },
-      },
-      target: {
-        color: {
-          background: "#1a2040",
-          border: "#a78bfa",
-          highlight: { background: "#252a55", border: "#c4b5fd" },
-          hover: { background: "#2e3568", border: "#ddd6fe" },
-        },
-        font: { color: "#ede9fe" },
-        shadow: {
-          enabled: true,
-          color: "rgba(167, 139, 250, 0.32)",
-          size: 22,
-          x: -2,
-          y: 4,
-        },
-      },
-    };
-    options.groups.agent = mergeGroup(options.groups.agent, darkGroup.agent);
-    options.groups.test = mergeGroup(options.groups.test, darkGroup.test);
-    options.groups.target = mergeGroup(options.groups.target, darkGroup.target);
-    options.nodes.font = Object.assign({}, options.nodes.font, { color: "#e2e8f0" });
-    options.nodes.shadow = Object.assign({}, options.nodes.shadow, {
-      color: "rgba(0, 0, 0, 0.45)",
-      size: 20,
-      x: -1,
-      y: 3,
-    });
-    options.edges.color = Object.assign({}, options.edges.color, {
-      color: "#5c6b82",
-      highlight: "#38bdf8",
-      hover: "#94a3b8",
-      inherit: false,
-    });
-    options.edges.font = Object.assign({}, options.edges.font, { color: "#cbd5e1" });
-    return options;
-  }
-
-  /**
-   * @param {object|null} userOpts - may include `visDarkBackground` (stripped before passing to vis)
-   */
-  function buildNetworkOptions(userOpts) {
-    const opts = userOpts || {};
-    const dark = !!opts.visDarkBackground;
-    const stripped = Object.assign({}, opts);
-    delete stripped.visDarkBackground;
-    let options = Object.assign(cloneTopologyOptions(), stripped);
-    if (dark) {
-      applyDarkVisTheme(options);
-    }
-    return options;
-  }
+  const DARK_STYLES = {
+    agent: {
+      fill: "#0f3557",
+      border: "#fbbf24",
+      text: "#fef3c7",
+      shadow: "rgba(251, 191, 36, 0.35)",
+    },
+    test: {
+      fill: "#0c3550",
+      border: "#38bdf8",
+      text: "#e0f2fe",
+      shadow: "rgba(56, 189, 248, 0.35)",
+    },
+    target: {
+      fill: "#1a2040",
+      border: "#a78bfa",
+      text: "#ede9fe",
+      shadow: "rgba(167, 139, 250, 0.32)",
+    },
+  };
 
   function normalizeGraph(data) {
     if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
@@ -340,9 +115,6 @@
     return { nodes: data.nodes, edges: data.edges };
   }
 
-  /**
-   * Improves multi-line labels from the API: title line + detail lines with a blank separator read clearer.
-   */
   function enrichNodesForReadability(graph) {
     const nodes = (graph.nodes || []).map(function (n) {
       const copy = Object.assign({}, n);
@@ -366,15 +138,181 @@
     return { nodes: nodes, edges: graph.edges || [] };
   }
 
+  function groupLevel(group) {
+    if (group === "agent") return 0;
+    if (group === "target") return 2;
+    return 1;
+  }
+
+  function estimateNodeSize(label) {
+    const lines = String(label || "").split("\n");
+    const maxLen = Math.max(1, ...lines.map(function (l) {
+      return l.length;
+    }));
+    const width = Math.min(300, Math.max(130, maxLen * 7 + 28));
+    const height = Math.max(48, lines.length * 17 + 24);
+    return [width, height];
+  }
+
+  function normalizeDirection(dir) {
+    if (dir === "TD" || dir === "UD" || dir === "TB") return "vertical";
+    return "horizontal";
+  }
+
+  function layoutNodes(rawNodes, direction) {
+    const buckets = [[], [], []];
+    rawNodes.forEach(function (n) {
+      buckets[groupLevel(n.group)].push(n);
+    });
+    buckets.forEach(function (col) {
+      col.sort(function (a, b) {
+        return String(a.id).localeCompare(String(b.id));
+      });
+    });
+
+    const colSep = 360;
+    const rowSep = 130;
+    const vertical = normalizeDirection(direction) === "vertical";
+    const positioned = [];
+
+    buckets.forEach(function (col, lvl) {
+      col.forEach(function (n, i) {
+        const size = estimateNodeSize(n.label);
+        const offset = (i - (col.length - 1) / 2) * rowSep;
+        positioned.push(
+          Object.assign({}, n, {
+            symbolSize: size,
+            x: vertical ? offset : lvl * colSep,
+            y: vertical ? lvl * rowSep : offset,
+          })
+        );
+      });
+    });
+    return positioned;
+  }
+
+  function styleForGroup(group, dark) {
+    const palette = dark ? DARK_STYLES : LIGHT_STYLES;
+    return palette[group] || palette.test;
+  }
+
+  function buildEChartsOption(graph, opts) {
+    const dark = !!(opts && (opts.visDarkBackground || opts.darkBackground));
+    const direction = (opts && (opts.graphDirection || opts.direction)) || "LR";
+    const edgeColor = dark ? "#5c6b82" : "#94a3b8";
+    const edgeLabelColor = dark ? "#cbd5e1" : "#0f172a";
+    const positioned = layoutNodes(graph.nodes, direction);
+
+    const data = positioned.map(function (n) {
+      const style = styleForGroup(n.group, dark);
+      return {
+        id: n.id,
+        name: n.label,
+        x: n.x,
+        y: n.y,
+        symbol: "roundRect",
+        symbolSize: n.symbolSize,
+        category: GROUP_CATEGORY[n.group] != null ? GROUP_CATEGORY[n.group] : 1,
+        itemStyle: {
+          color: style.fill,
+          borderColor: style.border,
+          borderWidth: 3,
+          shadowBlur: 18,
+          shadowColor: style.shadow,
+          shadowOffsetX: -2,
+          shadowOffsetY: 4,
+        },
+        label: {
+          show: true,
+          color: style.text,
+          fontSize: n.group === "target" ? 13 : 14,
+          fontFamily: fontStack,
+          lineHeight: 17,
+        },
+      };
+    });
+
+    const links = (graph.edges || []).map(function (e) {
+      const link = {
+        source: e.from,
+        target: e.to,
+        lineStyle: {
+          color: edgeColor,
+          width: 2,
+          curveness: 0.15,
+        },
+      };
+      if (e.label) {
+        link.label = {
+          show: true,
+          formatter: e.label,
+          color: edgeLabelColor,
+          fontSize: 11,
+          fontFamily: fontStack,
+        };
+      }
+      return link;
+    });
+
+    return {
+      backgroundColor: dark ? TEVIS_VIS_DARK_BG : "transparent",
+      animationDuration: 250,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          if (p.dataType === "edge") {
+            const lbl = p.data.label && p.data.label.formatter;
+            return lbl ? "Protocol: " + lbl : p.data.source + " → " + p.data.target;
+          }
+          return (p.data.name || p.name || "").replace(/\n/g, "<br>");
+        },
+      },
+      series: [
+        {
+          type: "graph",
+          layout: "none",
+          roam: true,
+          draggable: true,
+          data: data,
+          links: links,
+          categories: [{ name: "Agents" }, { name: "Tests" }, { name: "Targets" }],
+          edgeSymbol: ["none", "arrow"],
+          edgeSymbolSize: 8,
+          emphasis: {
+            focus: "adjacency",
+            lineStyle: { width: 3, color: dark ? "#38bdf8" : "#2563eb" },
+          },
+        },
+      ],
+    };
+  }
+
+  function applyContainerChrome(el, dark) {
+    el.style.setProperty("background", dark ? TEVIS_VIS_DARK_BG : LIGHT_CONTAINER_BG, "important");
+    el.style.setProperty("border", dark ? "1px solid #143d5e" : "1px solid #e2e8f0", "important");
+    el.style.borderRadius = "10px";
+  }
+
+  function disposeChart(el) {
+    if (el._tevisResizeHandler) {
+      window.removeEventListener("resize", el._tevisResizeHandler);
+      el._tevisResizeHandler = null;
+    }
+    if (el._tevisChart) {
+      el._tevisChart.dispose();
+      el._tevisChart = null;
+    }
+  }
+
   /**
-   * @param {string} containerId - element id for the graph
-   * @param {object|null} [opts] - vis overrides; set `visDarkBackground: true` for canvas {@link TEVIS_VIS_DARK_BG}
-   * @param {{nodes: object[], edges: object[]}|null} [data] - from Go createDiagrams JSON; omit to use built-in sample
-   * @returns {vis.Network|null}
+   * @param {string} containerId
+   * @param {object|null} [opts] - visDarkBackground / darkBackground, graphDirection (LR|TD|UD)
+   * @param {{nodes: object[], edges: object[]}|null} [data]
+   * @returns {echarts.ECharts|null}
    */
   function initTevisTopology(containerId, opts, data) {
-    if (typeof vis === "undefined") {
-      console.error("tevis-topology: vis-network is not loaded");
+    if (typeof echarts === "undefined") {
+      console.error("tevis-topology: Apache ECharts is not loaded");
       return null;
     }
     const el = document.getElementById(containerId);
@@ -383,30 +321,40 @@
       return null;
     }
 
-    const darkBg = !!(opts && opts.visDarkBackground);
-    el.style.setProperty("background", darkBg ? TEVIS_VIS_DARK_BG : LIGHT_VIS_CONTAINER_BG, "important");
-    el.style.setProperty("border", darkBg ? "1px solid #143d5e" : "1px solid #e2e8f0", "important");
-    el.style.borderRadius = "10px";
+    const userOpts = opts || {};
+    const dark = !!(userOpts.visDarkBackground || userOpts.darkBackground);
+    applyContainerChrome(el, dark);
+    disposeChart(el);
 
-    if (el._tevisVisNetwork) {
-      el._tevisVisNetwork.destroy();
-      el._tevisVisNetwork = null;
-    }
+    const graph = enrichNodesForReadability(normalizeGraph(data));
+    el._tevisLastData = graph;
+    el._tevisLastOpts = Object.assign({}, userOpts);
 
-    const g = enrichNodesForReadability(normalizeGraph(data));
-    const nodes = new vis.DataSet(g.nodes);
-    const edges = new vis.DataSet(g.edges);
-    const options = buildNetworkOptions(opts);
+    const chart = echarts.init(el, null, { renderer: "canvas" });
+    chart.setOption(buildEChartsOption(graph, el._tevisLastOpts));
 
-    const network = new vis.Network(el, { nodes, edges }, options);
-    el._tevisVisNetwork = network;
+    const onResize = function () {
+      chart.resize();
+    };
+    el._tevisResizeHandler = onResize;
+    window.addEventListener("resize", onResize);
+    el._tevisChart = chart;
+
     requestAnimationFrame(function () {
-      network.fit({ padding: 48, animation: { duration: 250, easingFunction: "easeInOutQuad" } });
+      chart.resize();
     });
-    return network;
+    return chart;
+  }
+
+  function setTevisTopologyDirection(containerId, direction) {
+    const el = document.getElementById(containerId);
+    if (!el || !el._tevisLastData) return null;
+    const opts = Object.assign({}, el._tevisLastOpts || {}, { graphDirection: direction });
+    return initTevisTopology(containerId, opts, el._tevisLastData);
   }
 
   window.tevisTopologyInit = initTevisTopology;
+  window.tevisTopologySetDirection = setTevisTopologyDirection;
   window.TEVIS_VIS_DARK_BG = TEVIS_VIS_DARK_BG;
   window.tevisTopologyStatic = {
     nodes: STATIC_NODES,

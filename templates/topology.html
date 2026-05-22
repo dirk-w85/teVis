@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
     <style>
         #visGraph { width: 100%; min-height: 50vh; height: calc(100vh - 22rem); border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #f8fafc; }
     </style>
@@ -31,7 +31,7 @@
         {{ end }}
 
         {{ if .CredentialStep }}
-        <h1 class="text-2xl font-bold text-slate-800 mb-2">Topology (vis.js)</h1>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Topology (ECharts)</h1>
         <p class="text-sm text-slate-600 mb-6">Sign in with your ThousandEyes API token. Account group (aid) is resolved automatically when omitted. Next you will pick a <strong>tag</strong> to draw agents, tests, and targets for tests assigned to that tag.</p>
         <form method="post" action="/topology" class="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div>
@@ -94,7 +94,7 @@
             </div>
             <label class="inline-flex items-center gap-2 shrink-0 cursor-pointer select-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
                 <input type="checkbox" id="tevis-vis-dark-bg" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" {{ if .VisDarkDefault }}checked{{ end }}>
-                <span>Dark vis canvas (<code class="text-xs">#07182D</code>)</span>
+                <span>Dark graph canvas (<code class="text-xs">#07182D</code>)</span>
             </label>
         </div>
         <div class="flex flex-wrap gap-3 mb-3 text-sm">
@@ -110,7 +110,7 @@
     </main>
 
     <footer class="text-center py-4 text-slate-500 text-sm border-t border-slate-200 bg-white">
-        teVis · vis-network
+        teVis · Apache ECharts
     </footer>
 
     <script src="/js/tevis-topology-static.js"></script>
@@ -134,7 +134,9 @@
             function paintVis() {
                 if (typeof tevisTopologyInit !== "function") return;
                 var dark = chk && chk.checked;
-                tevisTopologyInit("visGraph", { visDarkBackground: dark }, data);
+                var graphDir = "{{ .GraphDir }}";
+                if (!graphDir) graphDir = "LR";
+                tevisTopologyInit("visGraph", { visDarkBackground: dark, graphDirection: graphDir }, data);
             }
             paintVis();
             if (chk) {

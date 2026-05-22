@@ -79,7 +79,7 @@ type TETestDetail struct {
 	} `json:"_links"`
 }
 
-// VisNode / VisEdge are serialized for vis-network (same graph as Mermaid in createDiagrams).
+// VisNode / VisEdge are serialized for the topology graph (ECharts; same data as Mermaid in createDiagrams).
 type VisNode struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
